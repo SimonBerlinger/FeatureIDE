@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.eclipse.core.commands.operations.IUndoContext;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -78,11 +79,15 @@ import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.ui.IWorkbenchActionConstants;
 import org.eclipse.ui.progress.UIJob;
 
+import de.ovgu.featureide.core.IFeatureProject;
 import de.ovgu.featureide.fm.core.AnalysesCollection;
 import de.ovgu.featureide.fm.core.FeatureModelAnalyzer;
 import de.ovgu.featureide.fm.core.Features;
 import de.ovgu.featureide.fm.core.Logger;
+import de.ovgu.featureide.fm.core.ModelMarkerHandler;
+import de.ovgu.featureide.fm.core.analysis.ConstraintProperties.ConstraintStatus;
 import de.ovgu.featureide.fm.core.analysis.FeatureModelProperties.FeatureModelStatus;
+import de.ovgu.featureide.fm.core.analysis.FeatureProperties.FeatureStatus;
 import de.ovgu.featureide.fm.core.analysis.cnf.formula.FeatureModelFormula;
 import de.ovgu.featureide.fm.core.base.FeatureUtils;
 import de.ovgu.featureide.fm.core.base.IConstraint;
@@ -102,6 +107,8 @@ import de.ovgu.featureide.fm.core.explanations.Reason;
 import de.ovgu.featureide.fm.core.explanations.fm.FeatureModelExplanation;
 import de.ovgu.featureide.fm.core.explanations.fm.FeatureModelReason;
 import de.ovgu.featureide.fm.core.io.FileSystem;
+import de.ovgu.featureide.fm.core.io.Problem;
+import de.ovgu.featureide.fm.core.io.Problem.Severity;
 import de.ovgu.featureide.fm.core.io.manager.AFileManager;
 import de.ovgu.featureide.fm.core.io.manager.FileHandler;
 import de.ovgu.featureide.fm.core.io.manager.IFeatureModelManager;
@@ -267,6 +274,8 @@ public class FeatureDiagramEditor extends FeatureModelEditorPage implements GUID
 
 	private final IGraphicalFeatureModel graphicalFeatureModel;
 
+	private final ArrayList<Problem> problemList = new ArrayList<>();
+
 	/**
 	 * Constructor. Handles editable and read-only feature models.
 	 *
@@ -282,6 +291,7 @@ public class FeatureDiagramEditor extends FeatureModelEditorPage implements GUID
 		createActions();
 
 		FeatureColorManager.addListener(this);
+		analyzeFeatureModel();
 	}
 
 	private void createActions() {
@@ -577,6 +587,59 @@ public class FeatureDiagramEditor extends FeatureModelEditorPage implements GUID
 
 				final AnalysesCollection analysisResults = localAnalyzer.analyzeFeatureModel(monitor);
 				refreshGraphics(analysisResults);
+
+				problemList.clear();
+
+				System.out.println("------------------------------");
+				for (final IFeature f : featureModel.getFeatures()) {
+
+					System.out.print("Feature ''" + f + "''");
+
+					if (analysisResults.getFeatureProperty(f).hasStatus(FeatureStatus.DEAD)) {
+						System.out.println(" is dead: " + localAnalyzer.getDeadFeatureExplanation(f));
+						for (final Reason<?> r : localAnalyzer.getDeadFeatureExplanation(f).getReasons()) {
+							System.out.println(r + ": " + r.getConfidence());
+
+						}
+						problemList
+								.add(new Problem(IFeatureProject.MARKER_DEAD + "Feature ''" + f.getName() + "'' is not contained in any valid configuration.",
+										-1, Severity.ERROR));
+						continue;
+					}
+
+					if (analysisResults.getFeatureProperty(f).hasStatus(FeatureStatus.FALSE_OPTIONAL)) {
+						System.out.println(" is false optional: " + localAnalyzer.getFalseOptionalFeatureExplanation(f));
+						problemList.add(new Problem(IFeatureProject.MARKER_FALSE_OPTIONAL + "Feature ''" + f.getName()
+							+ "'' is not explicitly marked as mandatory, but behaves like a mandatory feature.", -1, Severity.WARNING));
+						continue;
+					}
+
+					System.out.println(" is neither dead nor false optional");
+				}
+
+				for (final IConstraint c : featureModel.getConstraints()) {
+					System.out.print("Constraint ''" + c + "''");
+
+					if (analysisResults.getConstraintProperty(c).hasStatus(ConstraintStatus.REDUNDANT)) {
+						System.out.println(" is redundant: " + localAnalyzer.getRedundantConstraintExplanation(c));
+						problemList.add(
+								new Problem(IFeatureProject.MARKER_REDUNDANCY + "Constraint ''" + c.getDisplayName() + "'' is redundant.", -1, Severity.INFO));
+						continue;
+					}
+
+					if (analysisResults.getConstraintProperty(c).hasStatus(ConstraintStatus.TAUTOLOGY)) {
+						System.out.println(" is a tautology");
+						problemList.add(new Problem(IFeatureProject.MARKER_TAUTOLOGY + "Constraint ''" + c.getDisplayName() + "'' is always true.", -1,
+								Severity.WARNING));
+						continue;
+					}
+
+					System.out.println(" is neither redundant nor a tautology");
+				}
+				System.out.println("------------------------------" + "\nFeature Model (Editor): " + featureModel);
+
+				createProblemMarkers();
+
 				return true;
 			}
 		}, ANALYZE_FEATURE_MODEL);
@@ -631,7 +694,7 @@ public class FeatureDiagramEditor extends FeatureModelEditorPage implements GUID
 	@Override
 	public <T> T getAdapter(Class<T> adapter) {
 		if (GraphicalViewer.class.equals(adapter) || EditPartViewer.class.equals(adapter)) {
-			return (T) adapter.cast(getViewer());
+			return adapter.cast(getViewer());
 		}
 		if (ZoomManager.class.equals(adapter)) {
 			return adapter.cast(viewer.getZoomManager());
@@ -1595,5 +1658,23 @@ public class FeatureDiagramEditor extends FeatureModelEditorPage implements GUID
 
 	public void adjustModelToEditorSize() {
 		adjustModelToEditorSizeAction.run();
+	}
+
+	protected void createProblemMarkers() {
+
+		if (getSite().getWorkbenchWindow().getPartService().getActivePart().getClass().equals(FeatureModelEditor.class)) {
+			final ModelMarkerHandler<IFile> markerHandler =
+				((FeatureModelEditor) getSite().getWorkbenchWindow().getPartService().getActivePart()).getMarkerHandler();
+
+			// TODO check for unintended hiding of model markers that are not defects
+			markerHandler.deleteAllModelMarkers();
+
+			if (markerHandler != null) {
+				for (final Problem p : problemList) {
+					markerHandler.createModelMarker(p.message, p.severity.getLevel(), -1);
+
+				}
+			}
+		}
 	}
 }

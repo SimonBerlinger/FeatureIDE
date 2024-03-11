@@ -623,4 +623,11 @@
         OutlineProvider="de.ovgu.featureide.fm.ui.views.outline.custom.providers.ConfigurationOutlineProvider">
   </Outline>
 	</extension>
+ <extension
+       point="org.eclipse.ui.ide.markerResolution">
+    <markerResolutionGenerator
+          class="de.ovgu.featureide.fm.ui.quickfix.DefectQuickFixHandler"
+          markerType="de.ovgu.featureide.fm.core.featureModelMarker">
+    </markerResolutionGenerator>
+ </extension>
 </plugin>

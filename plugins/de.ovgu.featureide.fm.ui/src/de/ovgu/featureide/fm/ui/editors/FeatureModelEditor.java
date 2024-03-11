@@ -574,10 +574,12 @@ public class FeatureModelEditor extends MultiPageEditorPart implements IEventLis
 	}
 
 	private void createModelFileMarkers(ProblemList warnings) {
+
 		markerHandler.deleteAllModelMarkers();
 		for (final Problem warning : warnings) {
 			markerHandler.createModelMarker(warning.message, warning.severity.getLevel(), warning.line);
 		}
+
 		if (!warnings.containsError()) {
 
 			// Check if automatic calculations are wanted
@@ -681,6 +683,10 @@ public class FeatureModelEditor extends MultiPageEditorPart implements IEventLis
 			createModelFileMarkers(fmManager.getLastProblems());
 		}
 
+		if (diagramEditor != null) {
+			diagramEditor.analyzeFeatureModel();
+		}
+
 		return true;
 	}
 
@@ -719,5 +725,12 @@ public class FeatureModelEditor extends MultiPageEditorPart implements IEventLis
 			return;
 		}
 		fmManager.removeListener(listener);
+	}
+
+	/**
+	 * @return
+	 */
+	protected ModelMarkerHandler<IFile> getMarkerHandler() {
+		return markerHandler;
 	}
 }

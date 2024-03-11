@@ -873,6 +873,21 @@ public abstract class Node {
 			} else {
 				return node;
 			}
+		} else if (node instanceof Implies) {
+			final Node leftChild = replaceLiterals(node.getChildren()[0], features, resolve);
+			final Node rightChild = replaceLiterals(node.getChildren()[1], features, resolve);
+			if (leftChild instanceof True) {
+				return rightChild;
+			} else if (leftChild instanceof False) {
+				return new True();
+			} else if (rightChild instanceof True) {
+				return new True();
+			} else if (rightChild instanceof False) {
+				return new Not(leftChild);
+			} else {
+				return node;
+			}
+
 		}
 		return null;
 	}

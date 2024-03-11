@@ -79,6 +79,11 @@ public interface IFeatureProject extends IBuilderMarkerHandler {
 	String MARKER_NEVER_SELECTED = "Never-selected: ";
 	String MARKER_ALWAYS_SELECTED = "Always-selected: ";
 
+	String MARKER_DEAD = "Dead feature: ";
+	String MARKER_FALSE_OPTIONAL = "False-optional: ";
+	String MARKER_REDUNDANCY = "Redundancy: ";
+	String MARKER_TAUTOLOGY = "Tautology: ";
+
 	void dispose();
 
 	String getProjectName();
