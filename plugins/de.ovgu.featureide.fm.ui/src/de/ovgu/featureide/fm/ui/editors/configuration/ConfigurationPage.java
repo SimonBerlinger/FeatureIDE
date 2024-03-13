@@ -22,8 +22,6 @@ package de.ovgu.featureide.fm.ui.editors.configuration;
 
 import static de.ovgu.featureide.fm.core.localization.StringTable.CONFIGURATION;
 
-import java.util.Collection;
-
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IMenuListener;
 import org.eclipse.jface.action.IMenuManager;
@@ -54,6 +52,7 @@ import de.ovgu.featureide.fm.core.configuration.Selection;
 import de.ovgu.featureide.fm.core.io.manager.ConfigurationManager;
 import de.ovgu.featureide.fm.ui.FMUIPlugin;
 import de.ovgu.featureide.fm.ui.GraphicsExporter;
+import de.ovgu.featureide.fm.ui.properties.FMPropertyManager;
 
 /**
  * Displays the tree for common configuration selection at the configuration editor
@@ -77,7 +76,7 @@ public class ConfigurationPage extends ConfigurationTreeEditorPage {
 
 			@Override
 			public void menuAboutToShow(IMenuManager mgr) {
-				contextMenu.add(new Action("Export As...", IMAGE_EXPORT_AS) {
+				contextMenu.add(new Action("Export As...", FMPropertyManager.IMAGE_EXPORT_AS) {
 
 					@Override
 					public void run() {
@@ -167,42 +166,38 @@ public class ConfigurationPage extends ConfigurationTreeEditorPage {
 		}
 	}
 
-	private static Image getImage(SelectableFeature selFeature) {
+	@Override
+	protected Image getImage(SelectableFeature selFeature, Selection selection) {
 		final IFeature feature = selFeature.getFeature();
 
-		final int distance = 4;
-		final int colorWidth = 24;
-		final int colorHeight = 12;
-
-		final ImageData id = new Image(Display.getCurrent(), distance + colorWidth + distance, colorHeight + 2).getImageData();
-		id.alpha = 0;
-		final Image mergeImage = new Image(Display.getCurrent(), id);
-
-		final GC gc = new GC(mergeImage);
-
 		final FeatureColor color = FeatureColorManager.getColor(feature);
+		final String imageString = color != null ? color.getColorName() : "";
+		Image combinedImage = combinedImages.get(imageString);
+		if (combinedImage == null) {
+			final int distance = 4;
+			final int colorWidth = 24;
+			final int colorHeight = 12;
 
-		if (color != FeatureColor.NO_COLOR) {
-			gc.setBackground(new Color(null, ColorPalette.getRGB(color.getValue(), 0.5f)));
-			gc.fillRoundRectangle(distance, 1, colorWidth, colorHeight, colorHeight, colorHeight);
-		} else {
-			gc.setForeground(new Color(191, 191, 191));
-			gc.drawRoundRectangle(distance, 1, colorWidth, colorHeight, colorHeight, colorHeight);
-		}
+			final Image image = new Image(Display.getCurrent(), distance + colorWidth + distance, colorHeight + 2);
+			final ImageData id = image.getImageData();
+			id.alpha = 0;
+			combinedImage = new Image(Display.getCurrent(), id);
 
-		return mergeImage;
-	}
+			final GC gc = new GC(combinedImage);
 
-	@Override
-	protected void refreshItem(Collection<TreeItem> items) {
-		super.refreshItem(items);
-		for (final TreeItem item : items) {
-			final Object data = item.getData();
-			if (data instanceof SelectableFeature) {
-				final SelectableFeature feature = (SelectableFeature) data;
-				item.setImage(getImage(feature));
+			if (color != FeatureColor.NO_COLOR) {
+				gc.setBackground(new Color(null, ColorPalette.getRGB(color.getValue(), 0.5f)));
+				gc.fillRoundRectangle(distance, 1, colorWidth, colorHeight, colorHeight, colorHeight);
+			} else {
+				gc.setForeground(FMPropertyManager.getLegendBorderColor());
+				gc.drawRoundRectangle(distance, 1, colorWidth, colorHeight, colorHeight, colorHeight);
 			}
+			combinedImages.put(imageString, combinedImage);
+
+			image.dispose();
 		}
+
+		return combinedImage;
 	}
 
 }
