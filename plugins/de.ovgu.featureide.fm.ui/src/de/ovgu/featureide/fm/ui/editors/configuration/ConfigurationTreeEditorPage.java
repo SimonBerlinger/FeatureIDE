@@ -36,6 +36,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -47,7 +48,6 @@ import java.util.function.Consumer;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.ProjectScope;
 import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ArmEvent;
 import org.eclipse.swt.events.ArmListener;
@@ -62,6 +62,7 @@ import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
+import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
@@ -70,9 +71,7 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
 import org.eclipse.swt.widgets.Shell;
@@ -98,13 +97,9 @@ import de.ovgu.featureide.fm.core.analysis.cnf.LiteralSet;
 import de.ovgu.featureide.fm.core.analysis.cnf.Nodes;
 import de.ovgu.featureide.fm.core.analysis.cnf.formula.FeatureModelFormula;
 import de.ovgu.featureide.fm.core.base.FeatureUtils;
-import de.ovgu.featureide.fm.core.base.IFeature;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import de.ovgu.featureide.fm.core.base.event.FeatureIDEEvent;
 import de.ovgu.featureide.fm.core.base.event.FeatureIDEEvent.EventType;
-import de.ovgu.featureide.fm.core.color.ColorPalette;
-import de.ovgu.featureide.fm.core.color.FeatureColor;
-import de.ovgu.featureide.fm.core.color.FeatureColorManager;
 import de.ovgu.featureide.fm.core.configuration.Configuration;
 import de.ovgu.featureide.fm.core.configuration.ConfigurationMatrix;
 import de.ovgu.featureide.fm.core.configuration.ConfigurationPropagator;
@@ -129,6 +124,8 @@ import de.ovgu.featureide.fm.core.job.monitor.IMonitor;
 import de.ovgu.featureide.fm.core.job.util.RunnerSequence;
 import de.ovgu.featureide.fm.ui.FMUIPlugin;
 import de.ovgu.featureide.fm.ui.editors.configuration.IConfigurationEditor.ExpandAlgorithm;
+import de.ovgu.featureide.fm.ui.editors.featuremodel.GUIBasics;
+import de.ovgu.featureide.fm.ui.properties.FMPropertyManager;
 import de.ovgu.featureide.fm.ui.utils.ISearchable;
 import de.ovgu.featureide.fm.ui.utils.SearchField;
 import de.ovgu.featureide.fm.ui.utils.UITreeIterator;
@@ -157,25 +154,22 @@ public abstract class ConfigurationTreeEditorPage extends EditorPart implements 
 	private static final String NO_AUTOMATIC_EXPAND = "No Automatic Expand";
 
 	protected static final Color gray = new Color(null, 140, 140, 140);
-	protected static final Color green = new Color(null, 0, 140, 0);
-	protected static final Color blue = new Color(null, 0, 0, 200);
-	protected static final Color red = new Color(null, 240, 0, 0);
+	protected static final Color blue = new Color(null, 59, 130, 246);
+	protected static final Color red = new Color(null, 239, 68, 68);
 
-	protected static final Font treeItemStandardFont = new Font(null, ARIAL, 8, SWT.NORMAL);
-	protected static final Font treeItemBoldFont = new Font(null, ARIAL, 8, SWT.BOLD);
-	protected static final Font treeItemItalicFont = new Font(null, ARIAL, 8, SWT.ITALIC);
-	protected static final Font treeItemBoldItalicFont = new Font(null, ARIAL, 8, SWT.BOLD | SWT.ITALIC);
+	protected static int minFontHeight = 1100 / Display.getCurrent().getDPI().y;
+	protected static int maxFontHeight = 2200 / Display.getCurrent().getDPI().y;
 
-	private static final Image IMAGE_EXPAND = FMUIPlugin.getDefault().getImageDescriptor("icons/expand.gif").createImage();
-	private static final Image IMAGE_COLLAPSE = FMUIPlugin.getDefault().getImageDescriptor("icons/collapse.gif").createImage();
-	private static final Image IMAGE_AUTOEXPAND_GROUP = FMUIPlugin.getDefault().getImageDescriptor("icons/tree02.png").createImage();
-	private static final Image IMAGE_NEXT = FMUIPlugin.getDefault().getImageDescriptor("icons/arrow_down.png").createImage();
-	private static final Image IMAGE_PREVIOUS = FMUIPlugin.getDefault().getImageDescriptor("icons/arrow_up.png").createImage();
-	private static final Image IMAGE_RESOLVE = FMUIPlugin.getDefault().getImageDescriptor("icons/synch_toc_nav.gif").createImage();
-	protected static final ImageDescriptor IMAGE_EXPORT_AS = FMUIPlugin.getDefault().getImageDescriptor("icons/export_wiz.gif");
+	protected static Font treeItemStandardFont = new Font(null, ARIAL, minFontHeight, SWT.NORMAL);
+	protected static Font treeItemBoldFont = new Font(null, ARIAL, minFontHeight, SWT.BOLD);
+	protected static Font treeItemItalicFont = new Font(null, ARIAL, minFontHeight, SWT.ITALIC);
+	protected static Font treeItemBoldItalicFont = new Font(null, ARIAL, minFontHeight, SWT.BOLD | SWT.ITALIC);
+
 	private static final Image IMAGE_RESET_SELECTION = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_TOOL_DELETE);
 
 	private static final int MAX_TOOLTIP_ELEMENT_LENGTH = 500;
+
+	protected static HashMap<String, Image> combinedImages = new HashMap<>();
 
 	private static enum UpdateStrategy {
 		BUILD, UPDATE, RESOLVE
@@ -355,6 +349,7 @@ public abstract class ConfigurationTreeEditorPage extends EditorPart implements 
 
 	@Override
 	public void createPartControl(Composite parent) {
+
 		// parent composite
 		GridLayout gridLayout = new GridLayout(1, false);
 		gridLayout.verticalSpacing = 4;
@@ -385,7 +380,9 @@ public abstract class ConfigurationTreeEditorPage extends EditorPart implements 
 		gridData.widthHint = 300;
 		infoLabel = new Label(compositeTop, SWT.NONE);
 		infoLabel.setLayoutData(gridData);
+		infoLabel.setFont(treeItemStandardFont);
 
+		// search field
 		new SearchField<>(compositeTop, this);
 
 		gridData = new GridData();
@@ -397,6 +394,7 @@ public abstract class ConfigurationTreeEditorPage extends EditorPart implements 
 
 		new ToolItem(toolbar, SWT.SEPARATOR);
 
+		// reset manual selection field
 		ToolItem item = new ToolItem(toolbar, SWT.PUSH);
 		item.setImage(IMAGE_RESET_SELECTION);
 		item.setToolTipText("Reset Manual Selection");
@@ -413,8 +411,9 @@ public abstract class ConfigurationTreeEditorPage extends EditorPart implements 
 
 		new ToolItem(toolbar, SWT.SEPARATOR);
 
+		// Automatically Resolve Conflicting Selections field
 		resolveButton = new ToolItem(toolbar, SWT.PUSH);
-		resolveButton.setImage(IMAGE_RESOLVE);
+		resolveButton.setImage(FMPropertyManager.IMAGE_RESOLVE);
 		resolveButton.setToolTipText("Automatically Resolve Conflicting Selections");
 		resolveButton.setEnabled(false);
 		resolveButton.addSelectionListener(new SelectionListener() {
@@ -432,8 +431,9 @@ public abstract class ConfigurationTreeEditorPage extends EditorPart implements 
 
 		new ToolItem(toolbar, SWT.SEPARATOR);
 
+		// collapse all features field
 		item = new ToolItem(toolbar, SWT.PUSH);
-		item.setImage(IMAGE_COLLAPSE);
+		item.setImage(FMPropertyManager.IMAGE_COLLAPSE);
 		item.setToolTipText("Collapse All Features");
 		item.addSelectionListener(new SelectionListener() {
 
@@ -447,8 +447,9 @@ public abstract class ConfigurationTreeEditorPage extends EditorPart implements 
 			public void widgetDefaultSelected(SelectionEvent e) {}
 		});
 
+		// expand all features field
 		item = new ToolItem(toolbar, SWT.PUSH);
-		item.setImage(IMAGE_EXPAND);
+		item.setImage(FMPropertyManager.IMAGE_EXPAND);
 		item.setToolTipText("Expand All Features");
 		item.addSelectionListener(new SelectionListener() {
 
@@ -461,8 +462,9 @@ public abstract class ConfigurationTreeEditorPage extends EditorPart implements 
 			public void widgetDefaultSelected(SelectionEvent e) {}
 		});
 
+		// choose expand algorithm field
 		dropDownMenu = new ToolItem(toolbar, SWT.DROP_DOWN);
-		dropDownMenu.setImage(IMAGE_AUTOEXPAND_GROUP);
+		dropDownMenu.setImage(FMPropertyManager.getImageAutoexpandGroup());
 		dropDownMenu.setToolTipText("Choose Expand Algorithm");
 
 		menu = new Menu(toolbar.getShell(), SWT.POP_UP);
@@ -499,8 +501,10 @@ public abstract class ConfigurationTreeEditorPage extends EditorPart implements 
 
 		new ToolItem(toolbar, SWT.SEPARATOR);
 
+		// show next open clause field
+
 		item = new ToolItem(toolbar, SWT.PUSH);
-		item.setImage(IMAGE_NEXT);
+		item.setImage(FMPropertyManager.getImageNext());
 		item.setToolTipText(SHOW_NEXT_OPEN_CLAUSE);
 		item.addSelectionListener(new SelectionListener() {
 
@@ -519,8 +523,10 @@ public abstract class ConfigurationTreeEditorPage extends EditorPart implements 
 			public void widgetDefaultSelected(SelectionEvent e) {}
 		});
 
+		// show previous open clause field
+
 		item = new ToolItem(toolbar, SWT.PUSH);
-		item.setImage(IMAGE_PREVIOUS);
+		item.setImage(FMPropertyManager.getImagePrevious());
 		item.setToolTipText(SHOW_PREVIOUS_OPEN_CLAUSE);
 		item.addSelectionListener(new SelectionListener() {
 
@@ -539,6 +545,56 @@ public abstract class ConfigurationTreeEditorPage extends EditorPart implements 
 			public void widgetDefaultSelected(SelectionEvent e) {}
 		});
 
+		new ToolItem(toolbar, SWT.SEPARATOR);
+
+		final ToolItem zoomIn = new ToolItem(toolbar, SWT.PUSH);
+		zoomIn.setImage(FMPropertyManager.getImageIncreaseFont());
+		zoomIn.setToolTipText("Increase font size");
+		zoomIn.addListener(SWT.Selection, (event) -> {
+			final FontData[] fdStandard = treeItemStandardFont.getFontData();
+			if (fdStandard[0].getHeight() >= maxFontHeight) {
+				return;
+			}
+			fdStandard[0].setHeight(fdStandard[0].getHeight() + 1);
+			final FontData[] fdBold = treeItemBoldFont.getFontData();
+			fdBold[0].setHeight(fdBold[0].getHeight() + 1);
+			final FontData[] fdItalic = treeItemItalicFont.getFontData();
+			fdItalic[0].setHeight(fdItalic[0].getHeight() + 1);
+			final FontData[] fdBoldItalic = treeItemBoldItalicFont.getFontData();
+			fdBoldItalic[0].setHeight(fdBoldItalic[0].getHeight() + 1);
+			treeItemStandardFont = new Font(Display.getCurrent(), fdStandard);
+			treeItemBoldFont = new Font(Display.getCurrent(), fdBold);
+			treeItemItalicFont = new Font(Display.getCurrent(), fdItalic);
+			treeItemBoldItalicFont = new Font(Display.getCurrent(), fdBoldItalic);
+
+			infoLabel.setFont(treeItemStandardFont);
+			refreshPage();
+		});
+
+		final ToolItem zoomOut = new ToolItem(toolbar, SWT.PUSH);
+		zoomOut.setImage(FMPropertyManager.getImageDecreaseFont());
+		zoomOut.setToolTipText("Decrease font size");
+		zoomOut.addListener(SWT.Selection, (event) -> {
+			final FontData[] fdStandard = treeItemStandardFont.getFontData();
+			if (fdStandard[0].getHeight() <= minFontHeight) {
+				return;
+			}
+			fdStandard[0].setHeight(fdStandard[0].getHeight() - 1);
+			final FontData[] fdBold = treeItemBoldFont.getFontData();
+			fdBold[0].setHeight(fdBold[0].getHeight() - 1);
+			final FontData[] fdItalic = treeItemItalicFont.getFontData();
+			fdItalic[0].setHeight(fdItalic[0].getHeight() - 1);
+			final FontData[] fdBoldItalic = treeItemBoldItalicFont.getFontData();
+			fdBoldItalic[0].setHeight(fdBoldItalic[0].getHeight() - 1);
+			treeItemStandardFont = new Font(Display.getCurrent(), fdStandard);
+			treeItemBoldFont = new Font(Display.getCurrent(), fdBold);
+			treeItemItalicFont = new Font(Display.getCurrent(), fdItalic);
+			treeItemBoldItalicFont = new Font(Display.getCurrent(), fdBoldItalic);
+
+			infoLabel.setFont(treeItemStandardFont);
+			refreshPage();
+		});
+
 		// 2. sub composite
 		gridData = new GridData();
 		gridData.horizontalAlignment = SWT.FILL;
@@ -551,23 +607,6 @@ public abstract class ConfigurationTreeEditorPage extends EditorPart implements 
 
 		createUITree(compositeBottom);
 
-		tree.addListener(SWT.PaintItem, new Listener() {
-
-			@Override
-			public void handleEvent(Event event) {
-				if (event.item instanceof TreeItem) {
-					final TreeItem item = (TreeItem) event.item;
-					if (item.getData() instanceof SelectableFeature) {
-						final SelectableFeature selectableFeature = (SelectableFeature) item.getData();
-						final IFeature feature = selectableFeature.getFeature();
-						final FeatureColor color = FeatureColorManager.getColor(feature);
-						if (color != FeatureColor.NO_COLOR) {
-							item.setBackground(new Color(null, ColorPalette.getRGB(color.getValue(), 0.5f)));
-						}
-					}
-				}
-			}
-		});
 		tree.addMouseMoveListener(new MouseMoveListener() {
 
 			@Override
@@ -771,7 +810,7 @@ public abstract class ConfigurationTreeEditorPage extends EditorPart implements 
 				if (configurationEditor.isAutoSelectFeatures()) {
 					computeTree(UpdateStrategy.UPDATE);
 				} else {
-					refreshItem(Arrays.asList(item));
+					refreshItems(Arrays.asList(item));
 					if (LongRunningWrapper.runMethod(getPropagator().canBeValid())) {
 						invalidFeatures.clear();
 					} else {
@@ -966,22 +1005,24 @@ public abstract class ConfigurationTreeEditorPage extends EditorPart implements 
 		return false;
 	}
 
-	protected void refreshItem(Collection<TreeItem> items) {
+	protected void refreshItems(Collection<TreeItem> items) {
+		final Color treeItemStandardColor = GUIBasics.invertColorOnDarkTheme(GUIBasics.createColor(75, 85, 99));
 		for (final TreeItem item : items) {
 			if (!item.isDisposed()) {
 				final Object data = item.getData();
 				if (data instanceof SelectableFeature) {
-					boolean checked = false;
-					boolean grayed = false;
-					Color fgColor = null;
-					Font font = treeItemStandardFont;
 					final SelectableFeature feature = (SelectableFeature) data;
+					boolean checked;
+					boolean grayed;
+					Color fgColor;
+					Font font;
 					final Selection automatic = feature.getAutomatic();
-					final Selection recommended = feature.getRecommended();
 					switch (automatic) {
 					case SELECTED:
 						checked = true;
 						grayed = true;
+						fgColor = treeItemStandardColor;
+						font = treeItemStandardFont;
 						break;
 					case UNSELECTED:
 						checked = false;
@@ -992,50 +1033,43 @@ public abstract class ConfigurationTreeEditorPage extends EditorPart implements 
 						font = treeItemItalicFont;
 						break;
 					case UNDEFINED:
+					default:
 						checked = feature.getManual() == Selection.SELECTED;
+						grayed = false;
+						fgColor = treeItemStandardColor;
+						font = treeItemStandardFont;
 						break;
 					}
 
-					final StringBuilder sb = new StringBuilder();
+					final String name = feature.getName();
 					if (automatic == Selection.UNDEFINED) {
-						switch (recommended) {
-						case SELECTED:
-							// again, this is a workaround for Ubuntu, which does not show the gray font color correctly
-							font = fgColor == gray ? treeItemBoldItalicFont : treeItemBoldFont;
-							fgColor = green;
-							break;
-						case UNSELECTED:
-							font = fgColor == gray ? treeItemBoldItalicFont : treeItemBoldFont;
-							fgColor = blue;
-							break;
-						case UNDEFINED:
-							break;
-						}
+						final Selection recommended = feature.getRecommended();
 						if (recommended == Selection.UNDEFINED) {
-							sb.append(feature.getName());
+							item.setText(name);
 						} else {
+							final StringBuilder sb = new StringBuilder();
 							final int recommendationValue = feature.getRecommendationValue();
 							if (useRecommendation && (recommendationValue >= 0)) {
 								sb.append(recommendationValue);
 								sb.append(" ");
 							}
-							sb.append(feature.getName());
+							sb.append(name);
 							final Set<Integer> openClauseIndexes = feature.getOpenClauseIndexes();
 							if (useGroups && !openClauseIndexes.isEmpty()) {
 								sb.append(" (unsatisfied group ");
 								sb.append(openClauseIndexes.iterator().next());
 								sb.append(")");
 							}
+							item.setText(sb.toString());
 						}
 					} else {
-						sb.append(feature.getName());
+						item.setText(name);
 					}
-					item.setText(sb.toString());
+					item.setForeground(fgColor);
 					item.setChecked(checked);
 					item.setGrayed(grayed);
 					item.setFont(font);
-					item.setBackground(null);
-					item.setForeground(fgColor);
+					item.setImage(getImage(feature, null));
 				}
 			}
 		}
@@ -1058,15 +1092,15 @@ public abstract class ConfigurationTreeEditorPage extends EditorPart implements 
 	}
 
 	private void updateFeatures(final Display currentDisplay, Collection<SelectableFeature> t) {
-		final ArrayList<TreeItem> itmes = new ArrayList<>();
+		final ArrayList<TreeItem> items = new ArrayList<>();
 		for (final SelectableFeature feature : t) {
 			final TreeItem item = itemMap.get(feature);
 			if (item != null) {
 				updateFeatures.remove(feature);
-				itmes.add(item);
+				items.add(item);
 			}
 		}
-		currentDisplay.asyncExec(() -> refreshItem(itmes));
+		currentDisplay.asyncExec(() -> refreshItems(items));
 	}
 
 	private Void resetUpdateFeatures(IMonitor<Void> monitor) {
@@ -1166,6 +1200,7 @@ public abstract class ConfigurationTreeEditorPage extends EditorPart implements 
 		final RunnerSequence sequence = new RunnerSequence();
 		sequence.setIgnorePreviousJobFail(false);
 		IRunner<Collection<SelectableFeature>> updateJob = null;
+
 		switch (updateStrategy) {
 		case RESOLVE:
 			sequence.addJob(LongRunningWrapper.getRunner(propagator.resolve()));
@@ -1396,7 +1431,7 @@ public abstract class ConfigurationTreeEditorPage extends EditorPart implements 
 			root.setData(rootFeature);
 			parentElements.add(root);
 			itemMap.put(rootFeature, root);
-			refreshItem(Arrays.asList(root));
+			refreshItems(Arrays.asList(root));
 		}
 	}
 
@@ -1413,8 +1448,10 @@ public abstract class ConfigurationTreeEditorPage extends EditorPart implements 
 					itemMap.put(currentFeature, childNode);
 				} catch (final Exception e) {}
 			}
-			refreshItem(items);
+			refreshItems(items);
 		}
 	}
+
+	protected abstract Image getImage(SelectableFeature selFeature, Selection selection);
 
 }

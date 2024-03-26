@@ -110,8 +110,8 @@ import de.ovgu.featureide.fm.core.io.FileSystem;
 import de.ovgu.featureide.fm.core.io.Problem;
 import de.ovgu.featureide.fm.core.io.Problem.Severity;
 import de.ovgu.featureide.fm.core.io.manager.AFileManager;
-import de.ovgu.featureide.fm.core.io.manager.FileHandler;
 import de.ovgu.featureide.fm.core.io.manager.IFeatureModelManager;
+import de.ovgu.featureide.fm.core.io.manager.SimpleFileHandler;
 import de.ovgu.featureide.fm.core.job.IRunner;
 import de.ovgu.featureide.fm.core.job.JobStartingStrategy;
 import de.ovgu.featureide.fm.core.job.JobToken;
@@ -542,7 +542,7 @@ public class FeatureDiagramEditor extends FeatureModelEditorPage implements GUID
 		if (fmManager instanceof AFileManager<?>) {
 			final Path gfmPath = AFileManager.constructExtraPath(((AFileManager<?>) fmManager).getPath(), new GraphicalFeatureModelFormat());
 			if ((gfmPath != null) && FileSystem.exists(gfmPath)) {
-				FileHandler.load(gfmPath, graphicalFeatureModel, new GraphicalFeatureModelFormat());
+				SimpleFileHandler.load(gfmPath, graphicalFeatureModel, new GraphicalFeatureModelFormat());
 				graphicalFeatureModel.writeValues();
 				if (deleteAfterwards) {
 					try {

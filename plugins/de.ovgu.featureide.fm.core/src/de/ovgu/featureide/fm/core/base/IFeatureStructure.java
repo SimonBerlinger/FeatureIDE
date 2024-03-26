@@ -115,6 +115,34 @@ public interface IFeatureStructure {
 		return isMultiple();
 	}
 
+	default boolean hasSameStructure(IFeatureStructure other) {
+		if (this == other) {
+			return true;
+		}
+		if (other == null) {
+			return false;
+		}
+
+		return (hasChildren() == other.hasChildren()) //
+			&& (hasHiddenParent() == other.hasHiddenParent()) //
+			&& (hasInlineRule() == other.hasInlineRule()) //
+			&& (isAbstract() == other.isAbstract()) //
+			&& (isAlternative() == other.isAlternative()) //
+			&& (isAnd() == other.isAnd()) //
+			&& (isANDPossible() == other.isANDPossible()) //
+			&& (isConcrete() == other.isConcrete()) //
+			&& (isHidden() == other.isHidden()) //
+			&& (isMandatory() == other.isMandatory()) //
+			&& (isMandatorySet() == other.isMandatorySet()) //
+			&& (isMultiple() == other.isMultiple()) //
+			&& (isOr() == other.isOr()) //
+			&& (isRoot() == other.isRoot()) //
+			// check if both parents are either "or" or "alternative" if they are not null.
+			&& (!((getParent() != null) && (other.getParent() != null)) //
+				|| ((getParent().isAlternative() == other.getParent().isAlternative()) //
+					&& (getParent().isOr() == other.getParent().isOr())));
+	}
+
 	void removeChild(IFeatureStructure child);
 
 	IFeatureStructure removeLastChild();

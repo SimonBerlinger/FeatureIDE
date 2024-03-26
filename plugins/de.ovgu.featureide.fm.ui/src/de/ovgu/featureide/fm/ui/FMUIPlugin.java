@@ -35,7 +35,6 @@ import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
-import org.eclipse.ui.dialogs.FilteredItemsSelectionDialog;
 import org.eclipse.ui.dialogs.FilteredResourcesSelectionDialog;
 import org.osgi.framework.BundleContext;
 
@@ -99,7 +98,7 @@ public class FMUIPlugin extends AbstractUIPlugin {
 			dialog.setTitle(SELECT_THE_FEATURE_MODEL_FOR_THE_CURRENT_PROJECT);
 			dialog.setMessage(SELECT_THE_FEATURE_MODEL_FOR_THE_CURRENT_PROJECT);
 			dialog.setInitialPattern("?");
-			if (dialog.open() == FilteredItemsSelectionDialog.OK) {
+			if (dialog.open() == FilteredResourcesSelectionDialog.OK) {
 				final Object[] results = dialog.getResult();
 				if ((results != null) && (results.length > 0)) {
 					final Object result = results[0];
@@ -115,9 +114,12 @@ public class FMUIPlugin extends AbstractUIPlugin {
 	}
 
 	public static Shell getShell() {
+		IWorkbenchWindow activeWorkbenchWindow = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+		if (activeWorkbenchWindow == null) {
+			activeWorkbenchWindow = Arrays.stream(PlatformUI.getWorkbench().getWorkbenchWindows()).findFirst().orElse(null);
+		}
 		return Optional //
-				.ofNullable(PlatformUI.getWorkbench().getActiveWorkbenchWindow()) //
-				.or(() -> Arrays.stream(PlatformUI.getWorkbench().getWorkbenchWindows()).findFirst()) //
+				.ofNullable(activeWorkbenchWindow) //
 				.map(IWorkbenchWindow::getShell) //
 				.orElse(null);
 	}

@@ -279,7 +279,7 @@ public class ConfigurationEditor extends MultiPageEditorPart implements GUIDefau
 		if (isReadConfigurationError()) {
 			internalPages = new ArrayList<>(1);
 			if (isReadFeatureModelError()) {
-				internalPages.add((ConfigurationEditorErrorPage) initPage(new ConfigurationEditorErrorPage()));
+				internalPages.add(initPage(new ConfigurationEditorErrorPage()));
 			} else {
 				textEditorPage = (TextEditorPage) initPage(new TextEditorPage());
 				internalPages.add(textEditorPage);
@@ -290,6 +290,7 @@ public class ConfigurationEditor extends MultiPageEditorPart implements GUIDefau
 			internalPages.add(initPage(new AdvancedConfigurationPage()));
 			textEditorPage = (TextEditorPage) initPage(new TextEditorPage());
 			internalPages.add(textEditorPage);
+			internalPages.add(initPage(new TreePreviewPage()));
 		}
 		allPages.addAll(internalPages);
 

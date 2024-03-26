@@ -31,18 +31,28 @@ import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.MouseListener;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
+import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.graphics.GC;
+import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
 
+import de.ovgu.featureide.fm.core.base.IFeature;
+import de.ovgu.featureide.fm.core.color.ColorPalette;
+import de.ovgu.featureide.fm.core.color.FeatureColor;
+import de.ovgu.featureide.fm.core.color.FeatureColorManager;
 import de.ovgu.featureide.fm.core.configuration.Configuration;
 import de.ovgu.featureide.fm.core.configuration.SelectableFeature;
 import de.ovgu.featureide.fm.core.configuration.Selection;
 import de.ovgu.featureide.fm.core.io.manager.ConfigurationManager;
 import de.ovgu.featureide.fm.ui.FMUIPlugin;
 import de.ovgu.featureide.fm.ui.GraphicsExporter;
+import de.ovgu.featureide.fm.ui.properties.FMPropertyManager;
 
 /**
  * Displays the tree for common configuration selection at the configuration editor
@@ -66,7 +76,7 @@ public class ConfigurationPage extends ConfigurationTreeEditorPage {
 
 			@Override
 			public void menuAboutToShow(IMenuManager mgr) {
-				contextMenu.add(new Action("Export As...", IMAGE_EXPORT_AS) {
+				contextMenu.add(new Action("Export As...", FMPropertyManager.IMAGE_EXPORT_AS) {
 
 					@Override
 					public void run() {
@@ -154,6 +164,40 @@ public class ConfigurationPage extends ConfigurationTreeEditorPage {
 				configuration.setManual(feature, Selection.UNDEFINED);
 			}
 		}
+	}
+
+	@Override
+	protected Image getImage(SelectableFeature selFeature, Selection selection) {
+		final IFeature feature = selFeature.getFeature();
+
+		final FeatureColor color = FeatureColorManager.getColor(feature);
+		final String imageString = color != null ? color.getColorName() : "";
+		Image combinedImage = combinedImages.get(imageString);
+		if (combinedImage == null) {
+			final int distance = 4;
+			final int colorWidth = 24;
+			final int colorHeight = 12;
+
+			final Image image = new Image(Display.getCurrent(), distance + colorWidth + distance, colorHeight + 2);
+			final ImageData id = image.getImageData();
+			id.alpha = 0;
+			combinedImage = new Image(Display.getCurrent(), id);
+
+			final GC gc = new GC(combinedImage);
+
+			if (color != FeatureColor.NO_COLOR) {
+				gc.setBackground(new Color(null, ColorPalette.getRGB(color.getValue(), 0.5f)));
+				gc.fillRoundRectangle(distance, 1, colorWidth, colorHeight, colorHeight, colorHeight);
+			} else {
+				gc.setForeground(FMPropertyManager.getLegendBorderColor());
+				gc.drawRoundRectangle(distance, 1, colorWidth, colorHeight, colorHeight, colorHeight);
+			}
+			combinedImages.put(imageString, combinedImage);
+
+			image.dispose();
+		}
+
+		return combinedImage;
 	}
 
 }
