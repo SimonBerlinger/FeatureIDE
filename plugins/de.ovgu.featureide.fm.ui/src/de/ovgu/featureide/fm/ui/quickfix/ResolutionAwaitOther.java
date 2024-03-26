@@ -48,7 +48,7 @@ public class ResolutionAwaitOther extends QuickFixDefect implements IMarkerResol
 	}
 
 	public ResolutionAwaitOther(IMarker marker, String feature, Set<String> falseOptionals) {
-		super(marker);
+		super(marker, null);
 		currentFeature = feature;
 		falseOptionalReasons = falseOptionals;
 

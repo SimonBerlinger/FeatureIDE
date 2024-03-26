@@ -23,6 +23,8 @@ package de.ovgu.featureide.fm.ui.quickfix;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.ui.IMarkerResolution;
 
+import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
+
 /**
  * TODO description
  *
@@ -41,8 +43,8 @@ public class RedundancyResolution extends QuickFixDefect implements IMarkerResol
 		System.out.println("FIX REDUNDANCY");
 	}
 
-	public RedundancyResolution(IMarker marker) {
-		super(marker);
+	public RedundancyResolution(IMarker marker, FeatureModelManager fmManager) {
+		super(marker, fmManager);
 	}
 
 }

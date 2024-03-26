@@ -23,26 +23,44 @@ package de.ovgu.featureide.fm.ui.quickfix;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.ui.IMarkerResolution;
 
+import de.ovgu.featureide.fm.core.base.IFeature;
+import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
+
 /**
  * TODO description
  *
  * @author Simon Berlinger
  */
-public class DeadFeatureResolution2 extends QuickFixDefect implements IMarkerResolution {
+public class ResolutionMakeOptional extends QuickFixDefect implements IMarkerResolution {
+
+	private final String featureName;
 
 	@Override
 	public String getLabel() {
 
-		return "Resolve the dead feature differently";
+		return "Make the feature ''" + featureName + "'' optional";
 	}
 
 	@Override
 	public void run(IMarker marker) {
-		System.out.println("FIX DEAD FEATURE");
+
+		fmManager.overwrite();
+		fmManager.editObject(featureModel -> {
+
+			final IFeature affectedFeature = featureModel.getFeature(featureName);
+
+			if (affectedFeature != null) {
+				affectedFeature.getStructure().setMandatory(false);
+			}
+		});
+
+		fmManager.save();
+		fmManager.overwrite();
 	}
 
-	public DeadFeatureResolution2(IMarker marker) {
-		super(marker);
+	public ResolutionMakeOptional(IMarker marker, String featureName, FeatureModelManager fmManager) {
+		super(marker, fmManager);
+		this.featureName = featureName;
 	}
 
 }

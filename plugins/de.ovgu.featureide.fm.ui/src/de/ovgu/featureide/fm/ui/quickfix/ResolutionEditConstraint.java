@@ -20,31 +20,33 @@
  */
 package de.ovgu.featureide.fm.ui.quickfix;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.ui.IMarkerResolution;
-import org.prop4j.Node;
-import org.prop4j.True;
 
 import de.ovgu.featureide.fm.core.base.IConstraint;
-import de.ovgu.featureide.fm.core.base.IFeature;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
+import de.ovgu.featureide.fm.ui.editors.featuremodel.actions.EditConstraintAction;
 
 /**
  * TODO description
  *
  * @author Simon Berlinger
  */
-public class ResolutionDeleteFeature extends QuickFixDefect implements IMarkerResolution {
+public class ResolutionEditConstraint extends QuickFixDefect implements IMarkerResolution {
 
-	private final String deadFeatureName;
+	IConstraint constraint;
+
+	/**
+	 * @param constr
+	 */
+	public ResolutionEditConstraint(IMarker marker, IConstraint constr, FeatureModelManager fmManager) {
+		super(marker, fmManager);
+		constraint = constr;
+	}
 
 	@Override
 	public String getLabel() {
-
-		return "Delete the affected feature";
+		return "Edit the constraint ''" + constraint + "''";
 	}
 
 	@Override
@@ -52,30 +54,13 @@ public class ResolutionDeleteFeature extends QuickFixDefect implements IMarkerRe
 
 		fmManager.overwrite();
 		fmManager.editObject(featureModel -> {
-
-			final IFeature deadFeature = featureModel.getFeature(deadFeatureName);
-
-			if (deadFeature != null) {
-				final ArrayList<IConstraint> toDelete = new ArrayList<>();
-				for (final IConstraint c : featureModel.getConstraints()) {
-					c.setNode(Node.replaceLiterals(c.getNode(), Arrays.asList(deadFeature.getName()), true));
-					if (c.getNode() instanceof True) {
-						toDelete.add(c);
-					}
-				}
-				toDelete.forEach(c -> featureModel.removeConstraint(c));
-				featureModel.deleteFeature(deadFeature);
-			}
+			final EditConstraintAction action = (EditConstraintAction) diagramEditor.getDiagramAction(EditConstraintAction.ID);
+			action.setConstraint(constraint);
+			action.run();
 		});
 
 		fmManager.save();
 		fmManager.overwrite();
-
-	}
-
-	public ResolutionDeleteFeature(IMarker marker, String affectedFeature, FeatureModelManager fmManager) {
-		super(marker, fmManager);
-		deadFeatureName = affectedFeature;
 	}
 
 }

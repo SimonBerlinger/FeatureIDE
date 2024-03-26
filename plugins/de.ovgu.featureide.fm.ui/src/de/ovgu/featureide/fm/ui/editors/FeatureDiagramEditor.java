@@ -590,17 +590,9 @@ public class FeatureDiagramEditor extends FeatureModelEditorPage implements GUID
 
 				problemList.clear();
 
-				System.out.println("------------------------------");
 				for (final IFeature f : featureModel.getFeatures()) {
 
-					System.out.print("Feature ''" + f + "''");
-
 					if (analysisResults.getFeatureProperty(f).hasStatus(FeatureStatus.DEAD)) {
-						System.out.println(" is dead: " + localAnalyzer.getDeadFeatureExplanation(f));
-						for (final Reason<?> r : localAnalyzer.getDeadFeatureExplanation(f).getReasons()) {
-							System.out.println(r + ": " + r.getConfidence());
-
-						}
 						problemList
 								.add(new Problem(IFeatureProject.MARKER_DEAD + "Feature ''" + f.getName() + "'' is not contained in any valid configuration.",
 										-1, Severity.ERROR));
@@ -608,35 +600,25 @@ public class FeatureDiagramEditor extends FeatureModelEditorPage implements GUID
 					}
 
 					if (analysisResults.getFeatureProperty(f).hasStatus(FeatureStatus.FALSE_OPTIONAL)) {
-						System.out.println(" is false optional: " + localAnalyzer.getFalseOptionalFeatureExplanation(f));
 						problemList.add(new Problem(IFeatureProject.MARKER_FALSE_OPTIONAL + "Feature ''" + f.getName()
 							+ "'' is not explicitly marked as mandatory, but behaves like a mandatory feature.", -1, Severity.WARNING));
-						continue;
 					}
 
-					System.out.println(" is neither dead nor false optional");
 				}
 
 				for (final IConstraint c : featureModel.getConstraints()) {
-					System.out.print("Constraint ''" + c + "''");
 
 					if (analysisResults.getConstraintProperty(c).hasStatus(ConstraintStatus.REDUNDANT)) {
-						System.out.println(" is redundant: " + localAnalyzer.getRedundantConstraintExplanation(c));
 						problemList.add(
 								new Problem(IFeatureProject.MARKER_REDUNDANCY + "Constraint ''" + c.getDisplayName() + "'' is redundant.", -1, Severity.INFO));
 						continue;
 					}
 
 					if (analysisResults.getConstraintProperty(c).hasStatus(ConstraintStatus.TAUTOLOGY)) {
-						System.out.println(" is a tautology");
 						problemList.add(new Problem(IFeatureProject.MARKER_TAUTOLOGY + "Constraint ''" + c.getDisplayName() + "'' is always true.", -1,
 								Severity.WARNING));
-						continue;
 					}
-
-					System.out.println(" is neither redundant nor a tautology");
 				}
-				System.out.println("------------------------------" + "\nFeature Model (Editor): " + featureModel);
 
 				createProblemMarkers();
 
@@ -669,10 +651,12 @@ public class FeatureDiagramEditor extends FeatureModelEditorPage implements GUID
 					}
 				} else {
 					for (final IFeatureModelElement element : changedAttributes.getFeatureModelElementsProperties().keySet()) {
+
 						if (element instanceof IFeature) {
 							((IFeature) element).fireEvent(new FeatureIDEEvent(this, EventType.ATTRIBUTE_CHANGED, false, true));
 							graphicalFeatureModel.getGraphicalFeature((IFeature) element).update(FeatureIDEEvent.getDefault(EventType.ATTRIBUTE_CHANGED));
-						} else if (element instanceof IConstraint) {
+						} else if ((element instanceof IConstraint) && fmManager.getVarObject().getConstraints().contains(element)) {// TODO dont do with
+																																		// contains
 							((IConstraint) element).fireEvent(new FeatureIDEEvent(this, EventType.ATTRIBUTE_CHANGED, false, true));
 							fmManager.getVarObject().getConstraints().get(fmManager.getVarObject().getConstraintIndex((IConstraint) element))
 									.fireEvent(new FeatureIDEEvent(this, EventType.ATTRIBUTE_CHANGED, false, true));
@@ -1644,6 +1628,10 @@ public class FeatureDiagramEditor extends FeatureModelEditorPage implements GUID
 		}
 		if (GEFActionConstants.ZOOM_OUT.equals(workbenchActionID)) {
 			return zoomOut;
+		}
+		// Used for defect resolution
+		if (EditConstraintAction.ID.equals(workbenchActionID)) {
+			return editConstraintAction;
 		}
 		return null;
 	}

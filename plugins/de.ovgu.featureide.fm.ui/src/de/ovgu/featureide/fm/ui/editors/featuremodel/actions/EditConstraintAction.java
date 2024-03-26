@@ -76,4 +76,10 @@ public class EditConstraintAction extends AbstractConstraintEditorAction {
 		}
 		return false;
 	}
+
+	public void setConstraint(IConstraint constr) {
+		if (constr != null) {
+			constraint = constr;
+		}
+	}
 }

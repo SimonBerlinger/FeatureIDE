@@ -23,6 +23,8 @@ package de.ovgu.featureide.fm.ui.quickfix;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.ui.IMarkerResolution;
 
+import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
+
 /**
  * TODO description
  *
@@ -30,10 +32,12 @@ import org.eclipse.ui.IMarkerResolution;
  */
 public class FalseOptionalResolution extends QuickFixDefect implements IMarkerResolution {
 
+	String labelPrefix = "";
+
 	@Override
 	public String getLabel() {
 
-		return "Resolve the false-optional feature";
+		return labelPrefix + "Resolve the false-optional feature";
 	}
 
 	@Override
@@ -41,8 +45,11 @@ public class FalseOptionalResolution extends QuickFixDefect implements IMarkerRe
 		System.out.println("FIX FALSE-OPTIONAL FEATURE");
 	}
 
-	public FalseOptionalResolution(IMarker marker) {
-		super(marker);
+	public FalseOptionalResolution(IMarker marker, FeatureModelManager fmManager) {
+		super(marker, fmManager);
+		if (marker.getAttribute("LABEL_PREFIX", null) != null) {
+			labelPrefix = marker.getAttribute("LABEL_PREFIX", null);
+		}
 	}
 
 }

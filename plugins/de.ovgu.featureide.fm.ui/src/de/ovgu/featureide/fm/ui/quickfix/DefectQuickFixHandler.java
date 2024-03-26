@@ -21,22 +21,24 @@
 package de.ovgu.featureide.fm.ui.quickfix;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.core.resources.IMarker;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.ui.IMarkerResolution;
 import org.eclipse.ui.IMarkerResolutionGenerator;
 
 import de.ovgu.featureide.core.CorePlugin;
 import de.ovgu.featureide.core.IFeatureProject;
 import de.ovgu.featureide.fm.core.FeatureModelAnalyzer;
+import de.ovgu.featureide.fm.core.PluginID;
 import de.ovgu.featureide.fm.core.analysis.cnf.formula.FeatureModelFormula;
+import de.ovgu.featureide.fm.core.base.IConstraint;
 import de.ovgu.featureide.fm.core.base.IFeature;
 import de.ovgu.featureide.fm.core.explanations.Reason;
+import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 
 /**
  * TODO description
@@ -46,7 +48,9 @@ import de.ovgu.featureide.fm.core.explanations.Reason;
 public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 
 	private FeatureModelAnalyzer analyzer;
-	private FeatureModelFormula featureModel;
+	private FeatureModelFormula featureModelFormula;
+	private FeatureModelManager fmManager;
+	private static final String MODEL_MARKER = PluginID.PLUGIN_ID + ".featureModelMarker";
 
 	@Override
 	public IMarkerResolution[] getResolutions(IMarker marker) {
@@ -56,115 +60,120 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 		if (marker != null) {
 			project = CorePlugin.getFeatureProject(marker.getResource());
 			if (project == null) {
-				featureModel = null;
+				featureModelFormula = null;
 			} else {
-				featureModel = project.getFeatureModelManager().getPersistentFormula();
+				featureModelFormula = project.getFeatureModelManager().getPersistentFormula();
 			}
 		} else {
-			featureModel = null;
+			featureModelFormula = null;
 		}
 
-		if (featureModel != null) {
+		if (featureModelFormula != null) {
 
-			analyzer = featureModel.getAnalyzer();
-			final String affectedFeatureName = marker.getAttribute(IMarker.MESSAGE, "").split("''")[1];
-			IFeature affectedFeature = null;
-			for (final IFeature feat : featureModel.getFeatureModel().getFeatures()) {
-				if (feat.getName().equals(affectedFeatureName)) {
-					affectedFeature = feat;
-					break;
-				}
-			}
+			analyzer = featureModelFormula.getAnalyzer();
+			fmManager = (FeatureModelManager) project.getFeatureModelManager();
+			final DefectResolutionProvider resolutionProvider =
+				new DefectResolutionProvider(featureModelFormula, marker, fmManager, analyzer, this, project.getModelFile());
 
-			if (affectedFeature != null) {
+			final String[] splitMessage = marker.getAttribute(IMarker.MESSAGE, "").split("''");
 
-				final Set<Reason<?>> reasons = analyzer.getDeadFeatureExplanation(affectedFeature).getReasons();
+			if (splitMessage.length > 1) {
 
-				final String message = marker.getAttribute(IMarker.MESSAGE, "");
+				final String affectedElementString = marker.getAttribute(IMarker.MESSAGE, "").split("''")[1];
 
-				if (message.startsWith(IFeatureProject.MARKER_DEAD) && !analyzer.getDeadFeatures(null).isEmpty()) {
+				if (analyzer.hasDeadFeatures(List.of(featureModelFormula.getFeatureModel().getStructure().getRoot().getFeature()))
+					|| affectedElementString.equals(featureModelFormula.getFeatureModel().getStructure().getRoot().getFeature().getName())) {
 
-					final ArrayList<IMarkerResolution> offeredResolutions = new ArrayList<>();
+					if (splitMessage[0].startsWith(IFeatureProject.MARKER_DEAD)
+						&& (analyzer.hasDeadFeatures(List.of(featureModelFormula.getFeatureModel().getFeature(affectedElementString)))
+							|| affectedElementString.equals(featureModelFormula.getFeatureModel().getStructure().getRoot().getFeature().getName()))) {
 
-					offeredResolutions.add(new ResolutionDeleteFeature(marker, affectedFeatureName));
+						final IFeature affectedFeature = featureModelFormula.getFeatureModel().getFeature(affectedElementString);
 
-					offeredResolutions.add(new DeadFeatureResolution2(marker));
+						if (affectedFeature != null) {
 
-					final Set<String> falseOptionals = getExcludingFalseOptionals(reasons, affectedFeature);
+							final Set<Reason<?>> reasons = analyzer.getDeadFeatureExplanation(affectedFeature).getReasons();
+							final Set<IMarkerResolution> offeredResolutions = new HashSet<>();
 
-					if (falseOptionals.size() > 0) {
-						offeredResolutions.add(new ResolutionAwaitOther(marker, affectedFeatureName, falseOptionals));
+							// Add possible resolutions to the set
+							offeredResolutions.add(new ResolutionDeleteFeature(marker, affectedElementString, fmManager));
+
+							resolutionProvider.checkForExcludingFalseOptionals(reasons, affectedFeature, offeredResolutions);
+
+							// All mandatory features, where the fact that they are mandatory is a reason
+							final List<IFeature> mandatoryReasons = new ArrayList<IFeature>();
+							for (final Reason<?> reason : reasons) {
+								final IFeature mandatoryReason = resolutionProvider.checkMandatoryChildReason(reason, offeredResolutions);
+								if (mandatoryReason != null) {
+									mandatoryReasons.add(mandatoryReason);
+								}
+							}
+
+							// All exclusions, where a mandatory feature excludes the affected feature
+							for (final Reason<?> reason : reasons) {
+								for (final IFeature f : mandatoryReasons) {
+									resolutionProvider.checkMandatoryExclusionConstraint(reason, offeredResolutions, affectedFeature, f);
+								}
+							}
+
+							// checks if the affected feature is implying its own exclusion
+							resolutionProvider.checkForSimultaneousImplExcl(reasons, affectedFeature, offeredResolutions);
+
+							return offeredResolutions.toArray(new IMarkerResolution[offeredResolutions.size()]);
+						}
+
+					} else if (splitMessage[0].startsWith(IFeatureProject.MARKER_FALSE_OPTIONAL)
+						&& !analyzer.getFalseOptionalFeatures(null).contains(featureModelFormula.getFeatureModel().getFeature(affectedElementString))) {
+
+							final IFeature affectedFeature = featureModelFormula.getFeatureModel().getFeature(affectedElementString);
+
+							if (affectedFeature != null) {
+								return new IMarkerResolution[] { new FalseOptionalResolution(marker, fmManager) };
+							}
+
+						} else if (splitMessage[0].startsWith(IFeatureProject.MARKER_REDUNDANCY)) {
+							return new IMarkerResolution[] { new RedundancyResolution(marker, fmManager) };
+
+						} else if (splitMessage[0].startsWith(IFeatureProject.MARKER_TAUTOLOGY)) {
+
+							for (final IConstraint c : featureModelFormula.getFeatureModel().getConstraints()) {
+								if (c.getDisplayName().equals(affectedElementString)) {
+									return new IMarkerResolution[] { new ResolutionDeleteConstraint(marker, c.getNode(), fmManager),
+										new ResolutionEditConstraint(marker, c, fmManager) };
+								}
+							}
+						}
+				} else {
+
+					// When the feature-model is void, always return fixes for the dead root
+					IMarker[] markers;
+					try {
+						markers = project.getModelFile().findMarkers(MODEL_MARKER, false, 0);
+
+						final List<IMarkerResolution> offeredResolutions = new ArrayList<>();
+
+						for (final IMarker marker1 : markers) {
+							final String message = (String) marker1.getAttribute(IMarker.MESSAGE);
+							if (message.startsWith(IFeatureProject.MARKER_DEAD)
+								&& message.split("''")[1].equals(featureModelFormula.getFeatureModel().getStructure().getRoot().getFeature().getName())) {
+
+								for (final IMarkerResolution resolution : getResolutions(marker1)) {
+									offeredResolutions.add(resolution);
+								}
+							}
+						}
+
+						return offeredResolutions.toArray(new IMarkerResolution[offeredResolutions.size()]);
+
+					} catch (final CoreException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
 					}
-
-					System.out.println("EXPL: " + analyzer.getDeadFeatureExplanation(affectedFeature));
-					analyzer.getDeadFeatureExplanation(affectedFeature).getReasons()
-							.forEach(r -> System.out.println("RSN: " + r + " " + r.toNode() + " " + r.toNode().getContainedFeatures()));
-
-					return offeredResolutions.toArray(new IMarkerResolution[offeredResolutions.size()]);
-
-				} else if (message.startsWith(IFeatureProject.MARKER_FALSE_OPTIONAL)) {
-					return new IMarkerResolution[] { new FalseOptionalResolution(marker) };
-
-				} else if (message.startsWith(IFeatureProject.MARKER_REDUNDANCY)) {
-					return new IMarkerResolution[] { new RedundancyResolution(marker) };
-
-				} else if (message.startsWith(IFeatureProject.MARKER_TAUTOLOGY)) {
-					return new IMarkerResolution[] { new TautologyResolution(marker) };
-
 				}
 			}
 		}
+		System.out.println("NONE");
 		return new IMarkerResolution[0];
 	}
 
-	/**
-	 *
-	 * @param deadFeature
-	 * @return
-	 */
-	private Set<String> getExcludingFalseOptionals(Set<Reason<?>> reasons, IFeature deadFeature) {
-
-		List<String> falseOptionals = new ArrayList<String>(analyzer.getCoreFeatures(null).stream().map(f -> f.getName()).toList());
-
-		final List<String> toRemove = new ArrayList<>();
-		for (final String fName : falseOptionals) {
-			if (!analyzer.getFalseOptionalFeatures(null).stream().map(ft -> ft.getName()).toList().contains(fName)) {
-				toRemove.add(fName);
-			}
-		}
-
-		for (final String f : toRemove) {
-			falseOptionals.remove(f);
-		}
-
-		final Map<String, Boolean> isAlwaysExcluded = new HashMap<>();
-
-		for (final String f : falseOptionals) {
-			isAlwaysExcluded.put(f, true);
-		}
-
-		for (final Reason<?> r : reasons) {
-			final Set<Map<Object, Boolean>> set = r.toNode().getSatisfyingAssignments();
-			for (final Map<Object, Boolean> map : set) {
-				if ((map.get(deadFeature.getName()) != null) && map.get(deadFeature.getName())) {
-					for (final Map.Entry<Object, Boolean> entry : map.entrySet()) {
-						if (falseOptionals.contains(entry.getKey().toString()) && entry.getValue()) {
-							isAlwaysExcluded.put(entry.getKey().toString(), false); // Assignment was found, where feature is not excluded if dead feature was
-																					 // selected
-						}
-					}
-				}
-			}
-		}
-		falseOptionals = null;
-
-		final Set<String> result = new HashSet<>();
-		isAlwaysExcluded.forEach((featureName, isExcluded) -> {
-			if (isExcluded) {
-				result.add(featureName);
-			}
-		});
-
-		return result;
-	}
 }
