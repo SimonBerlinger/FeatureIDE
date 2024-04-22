@@ -22,7 +22,10 @@ package de.ovgu.featureide.fm.ui.quickfix;
 
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.ui.IMarkerResolution;
+import org.prop4j.Node;
 
+import de.ovgu.featureide.fm.core.base.IConstraint;
+import de.ovgu.featureide.fm.core.base.impl.Constraint;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 
 /**
@@ -30,26 +33,47 @@ import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
  *
  * @author Simon Berlinger
  */
-public class FalseOptionalResolution extends QuickFixDefect implements IMarkerResolution {
+public class ResolutionSetConstraint extends QuickFixDefect implements IMarkerResolution {
 
-	String labelPrefix = "";
+	Node originalNode;
+	Node newNode;
+
+	public ResolutionSetConstraint(IMarker marker, FeatureModelManager manager, Node originalNode, Node newNode) {
+		super(marker, manager);
+		this.originalNode = originalNode;
+		this.newNode = newNode;
+	}
+
+	public ResolutionSetConstraint(IMarker marker, FeatureModelManager manager, Node originalNode, Node newNode, String prefix, String postfix) {
+		super(marker, manager);
+		this.originalNode = originalNode;
+		this.newNode = newNode;
+		this.prefix = prefix;
+		this.postfix = postfix;
+	}
 
 	@Override
 	public String getLabel() {
 
-		return labelPrefix + "Resolve the false-optional feature";
+		return prefix + " Change the constraint ''" + originalNode + "'' to ''" + newNode + "'' " + postfix;
 	}
 
 	@Override
 	public void run(IMarker marker) {
-		System.out.println("FIX FALSE-OPTIONAL FEATURE");
-	}
+		fmManager.overwrite();
+		fmManager.editObject(featureModel -> {
+			for (final IConstraint c : featureModel.getConstraints()) {
+				if (c.getNode().equals(originalNode)) {
+					featureModel.removeConstraint(c);
+					break;
+				}
+			}
+			featureModel.addConstraint(new Constraint(featureModel, newNode));
+		});
 
-	public FalseOptionalResolution(IMarker marker, FeatureModelManager fmManager) {
-		super(marker, fmManager);
-		if (marker.getAttribute("LABEL_PREFIX", null) != null) {
-			labelPrefix = marker.getAttribute("LABEL_PREFIX", null);
-		}
+		fmManager.save();
+		fmManager.overwrite();
+
 	}
 
 }

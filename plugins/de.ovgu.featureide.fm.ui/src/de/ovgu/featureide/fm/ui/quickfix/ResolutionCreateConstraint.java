@@ -20,12 +20,11 @@
  */
 package de.ovgu.featureide.fm.ui.quickfix;
 
-import java.util.Objects;
-
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.ui.IMarkerResolution;
+import org.prop4j.Node;
 
-import de.ovgu.featureide.fm.core.base.IFeature;
+import de.ovgu.featureide.fm.core.base.impl.Constraint;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 
 /**
@@ -33,14 +32,14 @@ import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
  *
  * @author Simon Berlinger
  */
-public class ResolutionMakeOptional extends QuickFixDefect implements IMarkerResolution {
+public class ResolutionCreateConstraint extends QuickFixDefect implements IMarkerResolution {
 
-	private final String featureName;
+	Node toCreateNode = null;
 
 	@Override
 	public String getLabel() {
 
-		return prefix + "Make the feature ''" + featureName + "'' optional";
+		return prefix + "Create the constraint ''" + toCreateNode + "''" + postfix;
 	}
 
 	@Override
@@ -48,42 +47,21 @@ public class ResolutionMakeOptional extends QuickFixDefect implements IMarkerRes
 
 		fmManager.overwrite();
 		fmManager.editObject(featureModel -> {
-
-			final IFeature affectedFeature = featureModel.getFeature(featureName);
-
-			if (affectedFeature != null) {
-				affectedFeature.getStructure().setMandatory(false);
-			}
+			featureModel.addConstraint(new Constraint(featureModel, toCreateNode));
 		});
 
 		fmManager.save();
 		fmManager.overwrite();
 	}
 
-	public ResolutionMakeOptional(IMarker marker, String featureName, FeatureModelManager fmManager, String prefix) {
-		super(marker, fmManager);
-		this.featureName = featureName;
-		this.prefix = prefix;
-	}
-
-	@Override
-	public int hashCode() {
-		return Objects.hash(featureName);
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		final ResolutionMakeOptional other = (ResolutionMakeOptional) obj;
-		return Objects.equals(featureName, other.featureName);
+	/**
+	 * @param marker
+	 * @param manager
+	 */
+	public ResolutionCreateConstraint(IMarker marker, FeatureModelManager manager, Node toCreateNode, String postfix) {
+		super(marker, manager);
+		this.toCreateNode = toCreateNode;
+		this.postfix = postfix;
 	}
 
 }

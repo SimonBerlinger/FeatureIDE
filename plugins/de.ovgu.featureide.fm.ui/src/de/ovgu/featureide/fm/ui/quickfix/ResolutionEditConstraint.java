@@ -20,6 +20,8 @@
  */
 package de.ovgu.featureide.fm.ui.quickfix;
 
+import java.util.Objects;
+
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.ui.IMarkerResolution;
 
@@ -44,9 +46,22 @@ public class ResolutionEditConstraint extends QuickFixDefect implements IMarkerR
 		constraint = constr;
 	}
 
+	public ResolutionEditConstraint(IMarker marker, IConstraint constr, FeatureModelManager fmManager, String prefix) {
+		super(marker, fmManager);
+		constraint = constr;
+		this.prefix = prefix;
+	}
+
+	public ResolutionEditConstraint(IMarker marker, IConstraint constr, FeatureModelManager fmManager, String prefix, String postfix) {
+		super(marker, fmManager);
+		constraint = constr;
+		this.prefix = prefix;
+		this.postfix = postfix;
+	}
+
 	@Override
 	public String getLabel() {
-		return "Edit the constraint ''" + constraint + "''";
+		return prefix + "Edit the constraint ''" + constraint.getDisplayName() + "''" + postfix;
 	}
 
 	@Override
@@ -61,6 +76,26 @@ public class ResolutionEditConstraint extends QuickFixDefect implements IMarkerR
 
 		fmManager.save();
 		fmManager.overwrite();
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(constraint);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		final ResolutionEditConstraint other = (ResolutionEditConstraint) obj;
+		return Objects.equals(constraint.getNode(), other.constraint.getNode());
 	}
 
 }

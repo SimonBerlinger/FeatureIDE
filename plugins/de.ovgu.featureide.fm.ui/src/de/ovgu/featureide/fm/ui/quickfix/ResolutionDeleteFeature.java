@@ -22,6 +22,7 @@ package de.ovgu.featureide.fm.ui.quickfix;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Objects;
 
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.ui.IMarkerResolution;
@@ -44,7 +45,7 @@ public class ResolutionDeleteFeature extends QuickFixDefect implements IMarkerRe
 	@Override
 	public String getLabel() {
 
-		return "Delete the affected feature";
+		return prefix + "Delete the affected feature";
 	}
 
 	@Override
@@ -76,6 +77,32 @@ public class ResolutionDeleteFeature extends QuickFixDefect implements IMarkerRe
 	public ResolutionDeleteFeature(IMarker marker, String affectedFeature, FeatureModelManager fmManager) {
 		super(marker, fmManager);
 		deadFeatureName = affectedFeature;
+	}
+
+	public ResolutionDeleteFeature(IMarker marker, String affectedFeature, FeatureModelManager fmManager, String prefix) {
+		super(marker, fmManager);
+		deadFeatureName = affectedFeature;
+		this.prefix = prefix;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(deadFeatureName);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		final ResolutionDeleteFeature other = (ResolutionDeleteFeature) obj;
+		return Objects.equals(deadFeatureName, other.deadFeatureName);
 	}
 
 }

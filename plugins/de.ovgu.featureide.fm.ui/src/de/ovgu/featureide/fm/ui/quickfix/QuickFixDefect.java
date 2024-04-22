@@ -41,6 +41,15 @@ public class QuickFixDefect implements IMarkerResolution {
 	protected FeatureModelFormula featureModel;
 	protected final FeatureModelManager fmManager;
 	protected FeatureDiagramEditor diagramEditor;
+	protected IMarker marker;
+	/**
+	 * The prefix is used to indicate resolutions for another defect that possibly causes the current defect
+	 */
+	protected String prefix = "";
+	/**
+	 * The postfix is used to for additional information or brief explanations for a fix
+	 */
+	protected String postfix = "";
 
 	@Override
 	public String getLabel() {
@@ -51,6 +60,7 @@ public class QuickFixDefect implements IMarkerResolution {
 	public void run(IMarker marker) {}
 
 	public QuickFixDefect(final IMarker marker, FeatureModelManager manager) {
+		this.marker = marker;
 		fmManager = manager;
 		if (marker != null) {
 			project = CorePlugin.getFeatureProject(marker.getResource());

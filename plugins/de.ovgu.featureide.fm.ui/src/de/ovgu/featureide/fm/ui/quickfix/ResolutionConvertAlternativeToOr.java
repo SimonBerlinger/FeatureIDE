@@ -20,38 +20,46 @@
  */
 package de.ovgu.featureide.fm.ui.quickfix;
 
-import java.util.Set;
-
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.ui.IMarkerResolution;
+
+import de.ovgu.featureide.fm.core.base.IFeature;
+import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 
 /**
  * TODO description
  *
  * @author Simon Berlinger
  */
-public class ResolutionAwaitOther extends QuickFixDefect implements IMarkerResolution {
+public class ResolutionConvertAlternativeToOr extends QuickFixDefect implements IMarkerResolution {
 
-	String currentFeature;
-	Set<String> falseOptionalReasons;
+	private final IFeature alternativeParent;
+
+	/**
+	 * @param marker
+	 * @param manager
+	 */
+	public ResolutionConvertAlternativeToOr(IMarker marker, FeatureModelManager manager, IFeature alternativeParent, String prefix, String postfix) {
+		super(marker, manager);
+		this.alternativeParent = alternativeParent;
+	}
 
 	@Override
 	public String getLabel() {
 
-		return "Skip to resolve " + falseOptionalReasons.toString().replace("[", "").replace("]", "") + " first? It might have an effect on " + currentFeature
-			+ ".";
+		return prefix + "Change the alternative-relation below ''" + alternativeParent + "'' to an or-relation" + postfix;
 	}
 
 	@Override
 	public void run(IMarker marker) {
-		System.out.println("FIX DEAD FEATURE");
-	}
+		fmManager.overwrite();
+		fmManager.editObject(featureModel -> {
+			featureModel.getFeature(alternativeParent.getName()).getStructure().changeToOr();
+			System.out.println(featureModel.getFeature(alternativeParent.getName()).getStructure().isOr() + " SUCCESS?");
+		});
 
-	public ResolutionAwaitOther(IMarker marker, String feature, Set<String> falseOptionals) {
-		super(marker, null);
-		currentFeature = feature;
-		falseOptionalReasons = falseOptionals;
-
+		fmManager.save();
+		fmManager.overwrite();
 	}
 
 }

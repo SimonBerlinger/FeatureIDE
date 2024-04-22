@@ -21,6 +21,7 @@
 package de.ovgu.featureide.fm.ui.quickfix;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,8 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.ui.IMarkerResolution;
+import org.prop4j.And;
+import org.prop4j.Node;
 
 import de.ovgu.featureide.core.IFeatureProject;
 import de.ovgu.featureide.fm.core.FeatureModelAnalyzer;
@@ -38,6 +41,8 @@ import de.ovgu.featureide.fm.core.PluginID;
 import de.ovgu.featureide.fm.core.analysis.cnf.formula.FeatureModelFormula;
 import de.ovgu.featureide.fm.core.base.IConstraint;
 import de.ovgu.featureide.fm.core.base.IFeature;
+import de.ovgu.featureide.fm.core.editing.FeatureModelToNodeTraceModel;
+import de.ovgu.featureide.fm.core.editing.FeatureModelToNodeTraceModel.Origin;
 import de.ovgu.featureide.fm.core.explanations.Reason;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 
@@ -75,7 +80,7 @@ public class DefectResolutionProvider {
 	 *
 	 * @return The mandatory feature if the reason consists of a feature being mandatory.
 	 */
-	IFeature checkMandatoryChildReason(Reason<?> reason, Set<IMarkerResolution> offeredResolutions) {
+	IFeature checkMandatoryChildReason(Reason<?> reason, Set<IMarkerResolution> offeredResolutions, String featurePrefix) {
 
 		if ((reason.toNode().getContainedFeatures().size() == 2)) {
 			final IFeature featureA = featureModelFormula.getFeatureModel().getFeature(reason.toNode().getContainedFeatures().get(0));
@@ -83,12 +88,12 @@ public class DefectResolutionProvider {
 
 			if ((featureA.getStructure().getParent() != null) && featureA.getStructure().getParent().getFeature().equals(featureB)) {
 				if (featureA.getStructure().isMandatory()) {
-					offeredResolutions.add(new ResolutionMakeOptional(marker, featureA.getName(), fmManager));
+					offeredResolutions.add(new ResolutionMakeOptional(marker, featureA.getName(), fmManager, featurePrefix));
 					return featureA;
 				}
 			} else if ((featureB.getStructure().getParent() != null) && featureB.getStructure().getParent().getFeature().equals(featureA)) {
 				if (featureB.getStructure().isMandatory()) {
-					offeredResolutions.add(new ResolutionMakeOptional(marker, featureB.getName(), fmManager));
+					offeredResolutions.add(new ResolutionMakeOptional(marker, featureB.getName(), fmManager, featurePrefix));
 				}
 				return featureB;
 			}
@@ -97,28 +102,100 @@ public class DefectResolutionProvider {
 	}
 
 	/**
+	 * Checks, if the reasons contain a constraint, where {@code possibleReason} excludes {@code possiblyExcluded}
 	 *
 	 * @param reason
 	 * @param offeredResolutions
 	 * @param possiblyExcluded
 	 * @param possibleReason
+	 *
+	 * @return true, if possiblyExcluded is excluded by possibleReason
 	 */
-	void checkMandatoryExclusionConstraint(Reason<?> reason, Set<IMarkerResolution> offeredResolutions, IFeature possiblyExcluded, IFeature possibleReason) {
-		if (possibleReason.getStructure().isMandatory()
-			&& (checkForExclusion(possiblyExcluded.getName(), List.of(possibleReason.getName()), reason).size() > 0)) {
-			offeredResolutions.add(new ResolutionDeleteConstraint(marker, reason.toNode(), fmManager));
+	boolean checkExclusion(Set<Reason<?>> reasons, Set<IMarkerResolution> offeredResolutions, String possiblyExcluded, String possibleReason,
+			String featurePrefix) {
 
-			IConstraint editConstraint = null;
+		for (final Reason<?> reason : reasons) {
+			if (checkForExclusion(possiblyExcluded, List.of(possibleReason), reason.toNode()).size() > 0) {
 
-			for (final IConstraint c : featureModelFormula.getFeatureModel().getConstraints()) {
-				if (c.getNode().equals(reason.toNode())) {
-					editConstraint = c;
+				System.out.println("EXCLUSION SUBJECT: " + reason.getSubject().getClass());
+
+				if (reason.getSubject() instanceof FeatureModelToNodeTraceModel.FeatureModelElementTrace) {
+
+					final FeatureModelToNodeTraceModel.FeatureModelElementTrace traceModel =
+						(FeatureModelToNodeTraceModel.FeatureModelElementTrace) reason.getSubject();
+
+					switch (traceModel.getOrigin()) {
+					case CHILD_DOWN:
+						break;
+					case CHILD_HORIZONTAL:
+
+						final IFeature affectedFeature = featureModelFormula.getFeatureModel().getFeature(possiblyExcluded);
+
+						if ((affectedFeature != null)) {
+							final IFeature affectedParent = affectedFeature.getStructure().getParent().getFeature();
+							if (affectedParent != null) {
+
+								offeredResolutions.add(new ResolutionConvertAlternativeToOr(marker, fmManager, affectedParent, featurePrefix, ""));
+							}
+						}
+						return true;
+					case CHILD_UP:
+						break;
+					case CONSTRAINT:
+						offeredResolutions.add(new ResolutionDeleteConstraint(marker, reason.toNode(), fmManager, featurePrefix,
+								" (It excludes ''" + possiblyExcluded + "'')"));
+
+						IConstraint editConstraint = null;
+
+						for (final IConstraint c : featureModelFormula.getFeatureModel().getConstraints()) {
+							if (c.getNode().equals(reason.toNode())) {
+								editConstraint = c;
+							}
+						}
+						if (editConstraint != null) {
+							offeredResolutions.add(new ResolutionEditConstraint(marker, editConstraint, fmManager, featurePrefix,
+									" (It excludes ''" + possiblyExcluded + "'')"));
+
+						} else {
+							Logger.logWarning("Constraint " + reason.toNode() + " was not found");
+						}
+						return true;
+					case ROOT:
+						break;
+					default:
+						break;
+					}
 				}
 			}
-			if (editConstraint != null) {
-				offeredResolutions.add(new ResolutionEditConstraint(marker, editConstraint, fmManager));
-			} else {
-				Logger.logWarning("Constraint " + reason.toNode() + " was not found");
+		}
+		return false;
+	}
+
+	/**
+	 * Checks, if the reasons contain a constraint, where {@code possibleReason} implies {@code possiblyImplied}
+	 *
+	 * @param reason
+	 * @param offeredResolutions
+	 * @param possiblyImplied
+	 * @param possibleReason
+	 */
+	void checkImplicationConstraint(Set<Reason<?>> reasons, Set<IMarkerResolution> offeredResolutions, String possiblyImplied, String possibleReason,
+			String featurePrefix) {
+		for (final Reason<?> reason : reasons) {
+			if (checkForImplication(possiblyImplied, List.of(possibleReason), reason).size() > 0) {
+				offeredResolutions.add(new ResolutionDeleteConstraint(marker, reason.toNode(), fmManager, featurePrefix));
+				IConstraint editConstraint = null;
+
+				for (final IConstraint c : featureModelFormula.getFeatureModel().getConstraints()) {
+					if (c.getNode().equals(reason.toNode())) {
+						editConstraint = c;
+					}
+				}
+				if (editConstraint != null) {
+					offeredResolutions.add(new ResolutionEditConstraint(marker, editConstraint, fmManager, featurePrefix));
+				} else {
+					Logger.logWarning("Constraint " + reason.toNode() + " was not found");
+				}
 			}
 		}
 	}
@@ -130,11 +207,11 @@ public class DefectResolutionProvider {
 	 * @param affectedFeature
 	 * @param offeredResolutions
 	 */
-	void checkForExcludingFalseOptionals(Set<Reason<?>> reasons, IFeature affectedFeature, Set<IMarkerResolution> offeredResolutions) {
-		final Set<String> falseOptionals = getExcludingFalseOptionals(reasons, affectedFeature.getName());
-		if (falseOptionals.size() > 0) {
-			offeredResolutions.add(new ResolutionAwaitOther(marker, affectedFeature.getName(), falseOptionals));
-		}
+	void checkForExcludingFalseOptionals(Set<Reason<?>> reasons, IFeature affectedFeature, Set<IMarkerResolution> offeredResolutions, String featurePrefix,
+			Set<String> involvedFeatures) {
+		final Set<String> falseOptionals = getExcludingFalseOptionals(reasons, affectedFeature.getName(), involvedFeatures);
+		System.out.println("Check false optionals excluding " + affectedFeature);
+
 		for (final String featureName : falseOptionals) {
 			IMarker[] markers = null;
 			try {
@@ -142,13 +219,12 @@ public class DefectResolutionProvider {
 				if ((markers != null) && (markers.length > 0)) {
 					for (final IMarker marker : markers) {
 						final String message = (String) marker.getAttribute(IMarker.MESSAGE);
-						if (message.startsWith(IFeatureProject.MARKER_FALSE_OPTIONAL) && message.split("''")[1].equals(featureName)) {
-							// Since the marker corresponds to a feature that may cause another defect and not this defect itself, we add a prefix to clarify
-							// this for the user
-							marker.setAttribute("LABEL_PREFIX", "[" + featureName + "]: ");
-							for (final IMarkerResolution resolution : quickFixHandler.getResolutions(marker)) {
+						if ((message != null) && message.startsWith(IFeatureProject.MARKER_FALSE_OPTIONAL) && message.split("''")[1].equals(featureName)) {
+
+							for (final IMarkerResolution resolution : quickFixHandler.getResolutionsShowPrefix(marker)) {
 								offeredResolutions.add(resolution);
 							}
+
 						}
 					}
 				}
@@ -161,17 +237,80 @@ public class DefectResolutionProvider {
 	}
 
 	/**
+	 * Check, if a feature is implied by false-optional features and add their fixes to the list.
+	 *
+	 * @param reasons
+	 * @param affectedFeature
+	 * @param offeredResolutions
+	 */
+	boolean checkForImplyingFalseOptionals(Set<Reason<?>> reasons, IFeature affectedFeature, Set<IMarkerResolution> offeredResolutions, String featurePrefix,
+			Set<String> involvedFeatures) {
+		System.out.println("Check optionals implying " + affectedFeature);
+		boolean found = false;
+		final Set<String> falseOptionals = getImplyingFalseOptionals(reasons, affectedFeature.getName(), involvedFeatures);
+		for (final String featureName : falseOptionals) {
+			IMarker[] markers = null;
+			try {
+				markers = modelFile.findMarkers(MODEL_MARKER, false, 0);
+				final IMarker reasonMarker = getMarkerOfDefectFeature(featureName, IFeatureProject.MARKER_FALSE_OPTIONAL);
+
+				if (reasonMarker != null) {
+					for (final IMarkerResolution resolution : quickFixHandler.getResolutionsShowPrefix(reasonMarker)) {
+						offeredResolutions.add(resolution);
+					}
+					found = true;
+
+				}
+
+			} catch (final CoreException e) {
+				Logger.logError(e);
+			}
+
+		}
+		return found;
+
+	}
+
+	/**
 	 * Check, if a feature is involved in both an implication and an exclusion with another feature included in the set of reasons.
 	 *
 	 * @param reasons
 	 * @param affectedFeature
 	 * @param offeredResolutions
 	 */
-	void checkForSimultaneousImplExcl(Set<Reason<?>> reasons, IFeature affectedFeature, Set<IMarkerResolution> offeredResolutions) {
+	void checkImpliesOwnExclusion(Set<Reason<?>> reasons, IFeature affectedFeature, Set<IMarkerResolution> offeredResolutions, String featurePrefix) {
+		System.out.println("CKECK IMPLY OWN EXCL for " + affectedFeature);
+		final Map<String, Node> impliedFeatures = new HashMap<>();
 
 		for (final Reason<?> r : reasons) {
 
-			// System.out.println("Reason " + r + " IMPLYING: " + checkForImplication(affectedFeature.getName(), r.toNode().getContainedFeatures(), r));
+			if (r.getSubject() instanceof FeatureModelToNodeTraceModel.FeatureModelElementTrace) {
+				final FeatureModelToNodeTraceModel.FeatureModelElementTrace traceModel = (FeatureModelToNodeTraceModel.FeatureModelElementTrace) r.getSubject();
+				if (traceModel.getOrigin() == Origin.CONSTRAINT) {
+					for (final String f : r.toNode().getContainedFeatures()) {
+						if (checkForImplication(f, List.of(affectedFeature.getName()), r).contains(affectedFeature.getName())) {
+							impliedFeatures.put(f, r.toNode());
+						}
+					}
+				}
+			}
+		}
+
+		final Node allReasons = new And();
+
+		final Node[] reasonNodes = new Node[reasons.size()];
+
+		for (int i = 0; i < reasons.size(); i++) {
+			reasonNodes[i] = ((Reason<?>) reasons.toArray()[i]).toNode();
+		}
+
+		allReasons.setChildren(reasonNodes);
+
+		for (final String implied : impliedFeatures.keySet()) {
+			if (isExcluding(implied, affectedFeature.getName(), allReasons)) {
+				offeredResolutions.add(new ResolutionDeleteConstraint(marker, (org.prop4j.Node) impliedFeatures.get(implied), fmManager, featurePrefix,
+						" (It implies ''" + implied + "'', leading to the exclusion of ''" + affectedFeature + "'')"));
+			}
 		}
 	}
 
@@ -181,25 +320,29 @@ public class DefectResolutionProvider {
 	 * @param deadFeature
 	 * @return The list of all excluding false-optionals.
 	 */
-	private Set<String> getExcludingFalseOptionals(Set<Reason<?>> reasons, String deadFeature) {
-
-		List<String> falseOptionalCore = new ArrayList<String>(analyzer.getCoreFeatures(null).stream().map(f -> f.getName()).toList());
-		final List<String> toRemove = new ArrayList<>();
-		for (final String fName : falseOptionalCore) {// remove all features that are not false optional from the list
-			if (!analyzer.getFalseOptionalFeatures(null).stream().map(ft -> ft.getName()).toList().contains(fName)) {
-				toRemove.add(fName);
-			}
-		}
-		for (final String f : toRemove) {
-			falseOptionalCore.remove(f);
-		}
+	private Set<String> getExcludingFalseOptionals(Set<Reason<?>> reasons, String deadFeature, Set<String> involvedFeatures) {
+		final List<String> falseOptionals = new ArrayList<String>(
+				involvedFeatures.stream().filter(x -> analyzer.getFalseOptionalFeatures(null).stream().map(ft -> ft.getName()).toList().contains(x)).toList());
 		final Set<String> result = new HashSet<>();
 		for (final Reason<?> r : reasons) {
-			result.addAll(checkForExclusion(deadFeature, falseOptionalCore, r));
-
+			result.addAll(checkForExclusion(deadFeature, falseOptionals, r.toNode()));
 		}
+		return result;
+	}
 
-		falseOptionalCore = null;
+	/**
+	 * Determines all false-optional features that occur in the reasons for a defect feature and imply it.
+	 *
+	 * @param falseOptionalFeature
+	 * @return The list of all implying false-optionals.
+	 */
+	private Set<String> getImplyingFalseOptionals(Set<Reason<?>> reasons, String falseOptionalFeature, Set<String> involvedFeatures) {
+		final List<String> falseOptionals = new ArrayList<String>(
+				involvedFeatures.stream().filter(x -> analyzer.getFalseOptionalFeatures(null).stream().map(ft -> ft.getName()).toList().contains(x)).toList());
+		final Set<String> result = new HashSet<>();
+		for (final Reason<?> r : reasons) {
+			result.addAll(checkForImplication(falseOptionalFeature, falseOptionals, r));
+		}
 		return result;
 	}
 
@@ -213,18 +356,17 @@ public class DefectResolutionProvider {
 	 * @param r
 	 * @return The list of features that would always exclude {@code excludedFeature}, when the formula from {@code r} evaluates to true.
 	 */
-	private List<String> checkForExclusion(String excludedFeature, List<String> possiblyExcluding, final Reason<?> r) {
-
+	private List<String> checkForExclusion(String excludedFeature, List<String> possiblyExcluding, final Node r) {
 		final List<String> excluding = new ArrayList<>();
 
-		if (!r.toNode().getContainedFeatures().contains(excludedFeature)) {
+		if (!r.getContainedFeatures().contains(excludedFeature)) {
 			return excluding;
 		}
 
 		boolean featuresContained = false;
 
 		for (final String fName : possiblyExcluding) {
-			if (r.toNode().getContainedFeatures().contains(fName)) {
+			if (r.getContainedFeatures().contains(fName)) {
 				featuresContained = true;
 			}
 		}
@@ -234,11 +376,11 @@ public class DefectResolutionProvider {
 		}
 
 		for (final String s : possiblyExcluding) {
-			if (r.toNode().getContainedFeatures().contains(s)) {
+			if (r.getContainedFeatures().contains(s)) {
 				excluding.add(s);
 			}
 		}
-		final Set<Map<Object, Boolean>> set = r.toNode().getSatisfyingAssignments();
+		final Set<Map<Object, Boolean>> set = r.getSatisfyingAssignments();
 		for (final Map<Object, Boolean> map : set) {
 			if ((map.get(excludedFeature) != null) && map.get(excludedFeature)) {
 				for (final Map.Entry<Object, Boolean> entry : map.entrySet()) {
@@ -252,8 +394,21 @@ public class DefectResolutionProvider {
 		return excluding;
 	}
 
+	public boolean isExcluding(String possibleReason, String excluded, Node reason) {
+		if (checkForExclusion(excluded, List.of(possibleReason), reason).isEmpty()) {
+			return false;
+		}
+		return true;
+	}
+
+	public boolean isImplying(String possibleReason, String implied, Reason<?> reason) {
+		if (checkForImplication(implied, List.of(possibleReason), reason).isEmpty()) {
+			return false;
+		}
+		return true;
+	}
+
 	/**
-	 * FIXME: Does not work
 	 *
 	 * Checks, which of the features from {@code possiblyExcluding} imply the feature {@code excludedFeature} in the formula that {@code r} is based on.
 	 *
@@ -283,22 +438,187 @@ public class DefectResolutionProvider {
 		}
 
 		for (final String s : possiblyImplying) {
-			if (r.toNode().getContainedFeatures().contains(s)) {
+			if (r.toNode().getContainedFeatures().contains(s) && !s.equals(impliedFeature)) {
 				implying.add(s);
 			}
 		}
+
 		final Set<Map<Object, Boolean>> set = r.toNode().getSatisfyingAssignments();
 		for (final Map<Object, Boolean> map : set) {
 			if ((map.get(impliedFeature) != null) && !map.get(impliedFeature)) {
+
 				for (final Map.Entry<Object, Boolean> entry : map.entrySet()) {
-					if (possiblyImplying.contains(entry.getKey().toString()) && entry.getValue()) {
-						implying.remove(entry.getKey().toString()); // Assignment was found, where the implication would be violated if impliedFeature was //
-																	 // selected
+
+					if ((possiblyImplying.contains(entry.getKey().toString()) && entry.getValue()) || entry.getKey().toString().equals(impliedFeature)) {
+
+						implying.remove(entry.getKey().toString()); // Assignment was found, where the implication would be violated
 					}
 				}
 			}
 		}
 		return implying;
+	}
+
+	// TODO where is checked, that the implied features are alternatives?
+	void checkImpliesMultiAlt(IMarker marker, Set<Reason<?>> reasons, IFeature affectedFeature, Set<IMarkerResolution> offeredResolutions,
+			String featurePrefix) {
+
+		final Map<String, Map<String, Node>> impliedAlternatives = new HashMap<>();
+
+		for (final Reason<?> r : reasons) {
+
+			if (r.getSubject() instanceof FeatureModelToNodeTraceModel.FeatureModelElementTrace) {
+
+				final FeatureModelToNodeTraceModel.FeatureModelElementTrace traceModel = (FeatureModelToNodeTraceModel.FeatureModelElementTrace) r.getSubject();
+
+				if (traceModel.getOrigin() == Origin.CONSTRAINT) {
+					for (final String f : r.toNode().getContainedFeatures()) {
+						if ((featureModelFormula.getFeatureModel().getFeature(f).getStructure().getParent() != null)
+							&& featureModelFormula.getFeatureModel().getFeature(f).getStructure().getParent().isAlternative()
+							&& isImplying(affectedFeature.getName(), f, r)) {
+
+							final IFeature impliedFeature = featureModelFormula.getFeatureModel().getFeature(f);
+
+							if (impliedAlternatives.get(impliedFeature.getStructure().getParent().getFeature().getName()) == null) {
+								impliedAlternatives.put(impliedFeature.getStructure().getParent().getFeature().getName(), new HashMap<String, Node>());
+							}
+							impliedAlternatives.get(impliedFeature.getStructure().getParent().getFeature().getName()).put(f, r.toNode());
+
+						}
+					}
+				}
+			}
+		}
+
+		for (final String parent : impliedAlternatives.keySet()) {
+			if (impliedAlternatives.get(parent).size() > 1) {
+				for (final String impliedAlt : impliedAlternatives.get(parent).keySet()) {
+
+					IConstraint editConstraint = null;
+					final Node implyingNode = impliedAlternatives.get(parent).get(impliedAlt);
+
+					for (final IConstraint c : featureModelFormula.getFeatureModel().getConstraints()) {
+						if (c.getNode().equals(implyingNode)) {
+							editConstraint = c;
+						}
+					}
+					if (editConstraint != null) {
+						offeredResolutions.add(new ResolutionEditConstraint(marker, editConstraint, fmManager, featurePrefix, " (It implies an alternative)"));
+
+					} else {
+						Logger.logWarning("Constraint " + implyingNode + " was not found");
+					}
+
+					offeredResolutions.add(new ResolutionDeleteConstraint(marker, implyingNode, fmManager, featurePrefix, " (It implies an alternative)"));
+				}
+			}
+		}
+
+	}
+
+	/**
+	 * Checks, if the feature {@code featureName} is true in any of the satisfying assignments of {@code node}
+	 *
+	 * @param featureName
+	 * @param node
+	 * @return
+	 */
+	boolean canBeSelectedInConstraint(String featureName, Node node) {
+
+		if (node.getContainedFeatures().contains(featureName)) {
+			for (final Map<Object, Boolean> map : node.getSatisfyingAssignments()) {
+				if (map.get(featureName) == true) {
+					return true;
+				}
+			}
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * @param reasons
+	 * @param affectedFeature
+	 * @param offeredResolutions
+	 * @param featurePrefix
+	 * @param involvedFeatures
+	 */
+	public Set<String> getImpliedDeadFeatures(Set<Reason<?>> reasons, String affectedFeature, Set<String> involvedFeatures) {
+		final List<String> deadFeatures = new ArrayList<String>(
+				involvedFeatures.stream().filter(x -> analyzer.getDeadFeatures(null).stream().map(ft -> ft.getName()).toList().contains(x)).toList());
+		final Set<String> result = new HashSet<>();
+		for (final Reason<?> r : reasons) {
+			for (final String deadFeature : deadFeatures) {
+				if (isImplying(affectedFeature, deadFeature, r)) {
+					result.add(deadFeature);
+				}
+			}
+		}
+		return result;
+	}
+
+	public boolean checkImpliedDeadFeatures(Set<Reason<?>> reasons, IFeature affectedFeature, Set<IMarkerResolution> offeredResolutions, String featurePrefix,
+			Set<String> involvedFeatures) {
+
+		boolean found = false;
+		final Set<String> deadFeatures = getImpliedDeadFeatures(reasons, affectedFeature.getName(), involvedFeatures);
+		System.out.println("CHECK IMPLIED DEAD: " + affectedFeature + " -> " + deadFeatures);
+		System.out.println("    DEAD: " + deadFeatures);
+		for (final String featureName : deadFeatures) {
+
+			final IMarker reasonMarker = getMarkerOfDefectFeature(featureName, IFeatureProject.MARKER_DEAD);
+
+			if (reasonMarker != null) {
+				for (final IMarkerResolution resolution : quickFixHandler.getResolutionsShowPrefix(reasonMarker)) {
+					System.out.println("ADD IMPLY DEAD RES " + resolution.getLabel());
+					offeredResolutions.add(resolution);
+					found = true;
+				}
+			}
+		}
+		System.out.println("Found? " + found + " resset: " + offeredResolutions);
+		return found;
+	}
+
+	/**
+	 * @param reasons
+	 * @param offeredResolutions
+	 * @param affectedFeature
+	 * @param featurePrefix
+	 * @param string
+	 */
+	public void checkAlternativeExclusion(Set<Reason<?>> reasons, Set<IMarkerResolution> offeredResolutions, IFeature affectedFeature, String prefix,
+			String postfix) {
+		final IFeature parent = affectedFeature.getStructure().getParent().getFeature();
+
+		for (final IFeature child : parent.getStructure().getChildren().stream().map(x -> x.getFeature()).toList()) {
+			if (analyzer.getDeadFeatures(null).contains(child)) {
+
+			}
+		}
+	}
+
+	// TODO use for false-optionals as well
+	private IMarker getMarkerOfDefectFeature(String featureName, String markerPrefix) {
+
+		IMarker[] markers;
+		try {
+			markers = modelFile.findMarkers(MODEL_MARKER, false, 0);
+			if ((markers != null) && (markers.length > 0)) {
+				for (final IMarker marker : markers) {
+					final String message = (String) marker.getAttribute(IMarker.MESSAGE);
+					if (message.startsWith(markerPrefix) && message.split("''")[1].equals(featureName)) {
+
+						return marker;
+					}
+				}
+			} else {
+				return null;
+			}
+		} catch (final CoreException e) {
+			Logger.logError(featureName);
+		}
+		return null;
 	}
 
 }
