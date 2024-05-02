@@ -23,7 +23,6 @@ package de.ovgu.featureide.fm.ui.quickfix;
 import java.util.Objects;
 
 import org.eclipse.core.resources.IMarker;
-import org.eclipse.ui.IMarkerResolution;
 
 import de.ovgu.featureide.fm.core.base.IFeature;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
@@ -33,7 +32,7 @@ import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
  *
  * @author Simon Berlinger
  */
-public class ResolutionMakeOptional extends QuickFixDefect implements IMarkerResolution {
+public class ResolutionMakeOptional extends AbstractResolution {
 
 	private final String featureName;
 
@@ -60,9 +59,9 @@ public class ResolutionMakeOptional extends QuickFixDefect implements IMarkerRes
 		fmManager.overwrite();
 	}
 
-	public ResolutionMakeOptional(IMarker marker, String featureName, FeatureModelManager fmManager, String prefix) {
-		super(marker, fmManager);
-		this.featureName = featureName;
+	public ResolutionMakeOptional(FeatureModelManager fmManager, IFeature feature, String prefix) {
+		super(fmManager);
+		featureName = feature.getName();
 		this.prefix = prefix;
 	}
 
@@ -84,6 +83,11 @@ public class ResolutionMakeOptional extends QuickFixDefect implements IMarkerRes
 		}
 		final ResolutionMakeOptional other = (ResolutionMakeOptional) obj;
 		return Objects.equals(featureName, other.featureName);
+	}
+
+	@Override
+	public String toString() {
+		return "ResolutionMakeOptional [featureName=" + featureName + "]";
 	}
 
 }

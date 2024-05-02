@@ -25,7 +25,6 @@ import java.util.Arrays;
 import java.util.Objects;
 
 import org.eclipse.core.resources.IMarker;
-import org.eclipse.ui.IMarkerResolution;
 import org.prop4j.Node;
 import org.prop4j.True;
 
@@ -38,9 +37,15 @@ import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
  *
  * @author Simon Berlinger
  */
-public class ResolutionDeleteFeature extends QuickFixDefect implements IMarkerResolution {
+public class ResolutionDeleteFeature extends AbstractResolution {
 
-	private final String deadFeatureName;
+	private final String featureName;
+
+	public ResolutionDeleteFeature(String affectedFeature, FeatureModelManager fmManager, String prefix) {
+		super(fmManager);
+		featureName = affectedFeature;
+		this.prefix = prefix;
+	}
 
 	@Override
 	public String getLabel() {
@@ -54,7 +59,7 @@ public class ResolutionDeleteFeature extends QuickFixDefect implements IMarkerRe
 		fmManager.overwrite();
 		fmManager.editObject(featureModel -> {
 
-			final IFeature deadFeature = featureModel.getFeature(deadFeatureName);
+			final IFeature deadFeature = featureModel.getFeature(featureName);
 
 			if (deadFeature != null) {
 				final ArrayList<IConstraint> toDelete = new ArrayList<>();
@@ -74,20 +79,9 @@ public class ResolutionDeleteFeature extends QuickFixDefect implements IMarkerRe
 
 	}
 
-	public ResolutionDeleteFeature(IMarker marker, String affectedFeature, FeatureModelManager fmManager) {
-		super(marker, fmManager);
-		deadFeatureName = affectedFeature;
-	}
-
-	public ResolutionDeleteFeature(IMarker marker, String affectedFeature, FeatureModelManager fmManager, String prefix) {
-		super(marker, fmManager);
-		deadFeatureName = affectedFeature;
-		this.prefix = prefix;
-	}
-
 	@Override
 	public int hashCode() {
-		return Objects.hash(deadFeatureName);
+		return Objects.hash(featureName);
 	}
 
 	@Override
@@ -102,7 +96,7 @@ public class ResolutionDeleteFeature extends QuickFixDefect implements IMarkerRe
 			return false;
 		}
 		final ResolutionDeleteFeature other = (ResolutionDeleteFeature) obj;
-		return Objects.equals(deadFeatureName, other.deadFeatureName);
+		return Objects.equals(featureName, other.featureName);
 	}
 
 }

@@ -23,9 +23,6 @@ package de.ovgu.featureide.fm.ui.quickfix;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.ui.IMarkerResolution;
 
-import de.ovgu.featureide.core.CorePlugin;
-import de.ovgu.featureide.core.IFeatureProject;
-import de.ovgu.featureide.fm.core.analysis.cnf.formula.FeatureModelFormula;
 import de.ovgu.featureide.fm.core.base.event.IEventListener;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 import de.ovgu.featureide.fm.ui.editors.FeatureDiagramEditor;
@@ -35,21 +32,14 @@ import de.ovgu.featureide.fm.ui.editors.FeatureDiagramEditor;
  *
  * @author Simon Berlinger
  */
-public class QuickFixDefect implements IMarkerResolution {
+public class AbstractResolution implements IMarkerResolution {
 
-	protected IFeatureProject project;
-	protected FeatureModelFormula featureModel;
 	protected final FeatureModelManager fmManager;
 	protected FeatureDiagramEditor diagramEditor;
-	protected IMarker marker;
 	/**
 	 * The prefix is used to indicate resolutions for another defect that possibly causes the current defect
 	 */
 	protected String prefix = "";
-	/**
-	 * The postfix is used to for additional information or brief explanations for a fix
-	 */
-	protected String postfix = "";
 
 	@Override
 	public String getLabel() {
@@ -59,20 +49,8 @@ public class QuickFixDefect implements IMarkerResolution {
 	@Override
 	public void run(IMarker marker) {}
 
-	public QuickFixDefect(final IMarker marker, FeatureModelManager manager) {
-		this.marker = marker;
+	protected AbstractResolution(FeatureModelManager manager) {
 		fmManager = manager;
-		if (marker != null) {
-			project = CorePlugin.getFeatureProject(marker.getResource());
-			if (project == null) {
-				featureModel = null;
-			} else {
-				featureModel = project.getFeatureModelManager().getPersistentFormula();
-			}
-		} else {
-			featureModel = null;
-			project = null;
-		}
 
 		if (fmManager != null) {
 			for (final IEventListener l : fmManager.getListeners()) {
@@ -83,5 +61,4 @@ public class QuickFixDefect implements IMarkerResolution {
 			}
 		}
 	}
-
 }

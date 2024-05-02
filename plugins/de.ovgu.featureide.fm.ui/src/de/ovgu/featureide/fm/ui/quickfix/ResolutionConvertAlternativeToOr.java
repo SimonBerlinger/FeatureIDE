@@ -21,7 +21,6 @@
 package de.ovgu.featureide.fm.ui.quickfix;
 
 import org.eclipse.core.resources.IMarker;
-import org.eclipse.ui.IMarkerResolution;
 
 import de.ovgu.featureide.fm.core.base.IFeature;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
@@ -31,7 +30,7 @@ import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
  *
  * @author Simon Berlinger
  */
-public class ResolutionConvertAlternativeToOr extends QuickFixDefect implements IMarkerResolution {
+public class ResolutionConvertAlternativeToOr extends AbstractResolution {
 
 	private final IFeature alternativeParent;
 
@@ -39,15 +38,16 @@ public class ResolutionConvertAlternativeToOr extends QuickFixDefect implements 
 	 * @param marker
 	 * @param manager
 	 */
-	public ResolutionConvertAlternativeToOr(IMarker marker, FeatureModelManager manager, IFeature alternativeParent, String prefix, String postfix) {
-		super(marker, manager);
+	public ResolutionConvertAlternativeToOr(FeatureModelManager manager, IFeature alternativeParent, String prefix) {
+		super(manager);
 		this.alternativeParent = alternativeParent;
+		this.prefix = prefix;
 	}
 
 	@Override
 	public String getLabel() {
 
-		return prefix + "Change the alternative-relation below ''" + alternativeParent + "'' to an or-relation" + postfix;
+		return prefix + "Change the alternative-relation below ''" + alternativeParent + "'' to an or-relation";
 	}
 
 	@Override

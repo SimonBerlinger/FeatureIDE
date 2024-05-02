@@ -21,7 +21,6 @@
 package de.ovgu.featureide.fm.ui.quickfix;
 
 import org.eclipse.core.resources.IMarker;
-import org.eclipse.ui.IMarkerResolution;
 import org.prop4j.Node;
 
 import de.ovgu.featureide.fm.core.base.IConstraint;
@@ -33,29 +32,22 @@ import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
  *
  * @author Simon Berlinger
  */
-public class ResolutionSetConstraint extends QuickFixDefect implements IMarkerResolution {
+public class ResolutionSetConstraint extends AbstractResolution {
 
-	Node originalNode;
-	Node newNode;
+	private final Node originalNode;
+	private final Node newNode;
 
-	public ResolutionSetConstraint(IMarker marker, FeatureModelManager manager, Node originalNode, Node newNode) {
-		super(marker, manager);
-		this.originalNode = originalNode;
-		this.newNode = newNode;
-	}
-
-	public ResolutionSetConstraint(IMarker marker, FeatureModelManager manager, Node originalNode, Node newNode, String prefix, String postfix) {
-		super(marker, manager);
+	public ResolutionSetConstraint(FeatureModelManager fmManager, Node originalNode, Node newNode, String prefix) {
+		super(fmManager);
 		this.originalNode = originalNode;
 		this.newNode = newNode;
 		this.prefix = prefix;
-		this.postfix = postfix;
 	}
 
 	@Override
 	public String getLabel() {
 
-		return prefix + " Change the constraint ''" + originalNode + "'' to ''" + newNode + "'' " + postfix;
+		return prefix + "Change the constraint ''" + originalNode + "'' to ''" + newNode + "''";
 	}
 
 	@Override

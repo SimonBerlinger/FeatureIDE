@@ -23,7 +23,6 @@ package de.ovgu.featureide.fm.ui.quickfix;
 import java.util.Objects;
 
 import org.eclipse.core.resources.IMarker;
-import org.eclipse.ui.IMarkerResolution;
 import org.prop4j.Node;
 
 import de.ovgu.featureide.fm.core.base.IConstraint;
@@ -34,36 +33,24 @@ import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
  *
  * @author Simon Berlinger
  */
-public class ResolutionDeleteConstraint extends QuickFixDefect implements IMarkerResolution {
+public class ResolutionDeleteConstraint extends AbstractResolution {
 
 	Node toDeleteNode;
 
-	public ResolutionDeleteConstraint(IMarker marker, Node node, FeatureModelManager fmManager) {
-		super(marker, fmManager);
+	public ResolutionDeleteConstraint(Node node, FeatureModelManager fmManager) {
+		super(fmManager);
 		toDeleteNode = node;
 	}
 
-	/**
-	 * @param node
-	 * @param postfix
-	 * @param prefix
-	 */
-	public ResolutionDeleteConstraint(IMarker marker, Node node, FeatureModelManager fmManager, String prefix, String postfix) {
-		super(marker, fmManager);
-		toDeleteNode = node;
-		this.prefix = prefix;
-		this.postfix = postfix;
-	}
-
-	public ResolutionDeleteConstraint(IMarker marker, Node node, FeatureModelManager fmManager, String prefix) {
-		super(marker, fmManager);
+	public ResolutionDeleteConstraint(Node node, FeatureModelManager fmManager, String prefix) {
+		super(fmManager);
 		toDeleteNode = node;
 		this.prefix = prefix;
 	}
 
 	@Override
 	public String getLabel() {
-		return prefix + "Delete the constraint ''" + toDeleteNode + "''" + postfix;
+		return prefix + "Delete the constraint ''" + toDeleteNode + "''";
 	}
 
 	@Override
@@ -106,6 +93,11 @@ public class ResolutionDeleteConstraint extends QuickFixDefect implements IMarke
 		}
 		final ResolutionDeleteConstraint other = (ResolutionDeleteConstraint) obj;
 		return Objects.equals(toDeleteNode, other.toDeleteNode);
+	}
+
+	@Override
+	public String toString() {
+		return "ResolutionDeleteConstraint [toDeleteNode=" + toDeleteNode + "]";
 	}
 
 }

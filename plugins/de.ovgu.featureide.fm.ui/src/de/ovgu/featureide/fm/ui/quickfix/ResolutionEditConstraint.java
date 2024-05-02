@@ -20,10 +20,11 @@
  */
 package de.ovgu.featureide.fm.ui.quickfix;
 
+import java.util.List;
 import java.util.Objects;
 
 import org.eclipse.core.resources.IMarker;
-import org.eclipse.ui.IMarkerResolution;
+import org.prop4j.Node;
 
 import de.ovgu.featureide.fm.core.base.IConstraint;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
@@ -34,34 +35,29 @@ import de.ovgu.featureide.fm.ui.editors.featuremodel.actions.EditConstraintActio
  *
  * @author Simon Berlinger
  */
-public class ResolutionEditConstraint extends QuickFixDefect implements IMarkerResolution {
+public class ResolutionEditConstraint extends AbstractResolution {
 
-	IConstraint constraint;
+	private IConstraint constraint;
 
-	/**
-	 * @param constr
-	 */
-	public ResolutionEditConstraint(IMarker marker, IConstraint constr, FeatureModelManager fmManager) {
-		super(marker, fmManager);
-		constraint = constr;
-	}
-
-	public ResolutionEditConstraint(IMarker marker, IConstraint constr, FeatureModelManager fmManager, String prefix) {
-		super(marker, fmManager);
+	public ResolutionEditConstraint(IConstraint constr, FeatureModelManager fmManager, String prefix) {
+		super(fmManager);
 		constraint = constr;
 		this.prefix = prefix;
 	}
 
-	public ResolutionEditConstraint(IMarker marker, IConstraint constr, FeatureModelManager fmManager, String prefix, String postfix) {
-		super(marker, fmManager);
-		constraint = constr;
+	public ResolutionEditConstraint(Node constrNode, FeatureModelManager fmManager, String prefix) {
+		super(fmManager);
+		final List<IConstraint> constraints =
+			fmManager.getPersistentFormula().getFeatureModel().getConstraints().stream().filter(x -> x.getNode().equals(constrNode)).toList();
+		if (constraints.size() > 0) {
+			constraint = constraints.get(0);
+		}
 		this.prefix = prefix;
-		this.postfix = postfix;
 	}
 
 	@Override
 	public String getLabel() {
-		return prefix + "Edit the constraint ''" + constraint.getDisplayName() + "''" + postfix;
+		return prefix + "Edit the constraint ''" + constraint.getDisplayName() + "''";
 	}
 
 	@Override
@@ -69,13 +65,24 @@ public class ResolutionEditConstraint extends QuickFixDefect implements IMarkerR
 
 		fmManager.overwrite();
 		fmManager.editObject(featureModel -> {
-			final EditConstraintAction action = (EditConstraintAction) diagramEditor.getDiagramAction(EditConstraintAction.ID);
-			action.setConstraint(constraint);
-			action.run();
+			if (constraint != null) {
+				final EditConstraintAction action = (EditConstraintAction) diagramEditor.getDiagramAction(EditConstraintAction.ID);
+				action.setConstraint(constraint);
+				action.run();
+			}
 		});
 
 		fmManager.save();
 		fmManager.overwrite();
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return "ResolutionEditConstraint [constraint=" + constraint + "]";
 	}
 
 	@Override
@@ -85,6 +92,7 @@ public class ResolutionEditConstraint extends QuickFixDefect implements IMarkerR
 
 	@Override
 	public boolean equals(Object obj) {
+
 		if (this == obj) {
 			return true;
 		}

@@ -21,7 +21,6 @@
 package de.ovgu.featureide.fm.ui.quickfix;
 
 import org.eclipse.core.resources.IMarker;
-import org.eclipse.ui.IMarkerResolution;
 import org.prop4j.Node;
 
 import de.ovgu.featureide.fm.core.base.impl.Constraint;
@@ -32,14 +31,23 @@ import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
  *
  * @author Simon Berlinger
  */
-public class ResolutionCreateConstraint extends QuickFixDefect implements IMarkerResolution {
+public class ResolutionCreateConstraint extends AbstractResolution {
 
 	Node toCreateNode = null;
+
+	/**
+	 * @param manager
+	 * @param marker
+	 */
+	public ResolutionCreateConstraint(Node toCreateNode, FeatureModelManager manager) {
+		super(manager);
+		this.toCreateNode = toCreateNode;
+	}
 
 	@Override
 	public String getLabel() {
 
-		return prefix + "Create the constraint ''" + toCreateNode + "''" + postfix;
+		return prefix + "Create the constraint ''" + toCreateNode + "''";
 	}
 
 	@Override
@@ -52,16 +60,6 @@ public class ResolutionCreateConstraint extends QuickFixDefect implements IMarke
 
 		fmManager.save();
 		fmManager.overwrite();
-	}
-
-	/**
-	 * @param marker
-	 * @param manager
-	 */
-	public ResolutionCreateConstraint(IMarker marker, FeatureModelManager manager, Node toCreateNode, String postfix) {
-		super(marker, manager);
-		this.toCreateNode = toCreateNode;
-		this.postfix = postfix;
 	}
 
 }
