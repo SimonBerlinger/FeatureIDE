@@ -21,11 +21,13 @@
 package de.ovgu.featureide.fm.ui.quickfix;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.eclipse.core.resources.IMarker;
 
 import de.ovgu.featureide.fm.core.base.IFeature;
 import de.ovgu.featureide.fm.core.base.IFeatureStructure;
+import de.ovgu.featureide.fm.core.base.impl.Feature;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 
 /**
@@ -70,17 +72,34 @@ public class ResolutionMakeMandatory extends AbstractResolution {
 
 					final List<IFeatureStructure> siblings =
 						currentParent.getStructure().getChildren().stream().filter(x -> !x.getFeature().getName().equals(featureName)).toList();
-					currentParent.getStructure().changeToAnd();
 
 					if (siblings.size() > 1) {
 
-						// TODO implement
+						currentParent.getStructure().changeToAnd();
+
+						int idx = 0;
+
+						while (featureModel.getFeature("ALT_GROUP_" + idx) != null) {
+							idx++;
+						}
+
+						final IFeature newFeature = new Feature(featureModel, "ALT_GROUP_" + idx);
+
+						for (final IFeatureStructure sibling : siblings) {
+							newFeature.getStructure().addChild(sibling);
+							currentParent.getStructure().removeChild(sibling);
+						}
+
+						newFeature.getStructure().setMandatory(false);
+						newFeature.getStructure().setAlternative();
+
+						currentParent.getStructure().addChild(newFeature.getStructure());
 
 					} else {
-						currentParent.getStructure().changeToAnd();
 						siblings.get(0).setMandatory(false);
-						currentFeature.getStructure().setMandatory(true);
 					}
+
+					currentFeature.getStructure().setMandatory(true);
 
 				} else if (currentParent.getStructure().isOr()) {
 					currentParent.getStructure().setAnd();
@@ -98,12 +117,33 @@ public class ResolutionMakeMandatory extends AbstractResolution {
 			}
 
 		});
-//		System.out.println("SUCCESS?: " + fmManager.getVariableFormula().getFeatureModel().getFeatures());
-//		System.out.println("SUCCESS?: " + fmManager.getPersistentFormula().getFeatureModel().getFeatures());
 		fmManager.save();
 		fmManager.overwrite();
-//		System.out.println("SUCCESS?: " + fmManager.getVariableFormula().getFeatureModel().getFeatures());
-//		System.out.println("SUCCESS?: " + fmManager.getPersistentFormula().getFeatureModel().getFeatures());
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(featureName, parentName);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		final ResolutionMakeMandatory other = (ResolutionMakeMandatory) obj;
+		return Objects.equals(featureName, other.featureName) && Objects.equals(parentName, other.parentName);
+	}
+
+	@Override
+	public String toString() {
+		return "ResolutionMakeMandatory [featureName=" + featureName + ", parentName=" + parentName + "]";
 	}
 
 }

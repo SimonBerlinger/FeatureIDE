@@ -99,4 +99,9 @@ public class ResolutionDeleteFeature extends AbstractResolution {
 		return Objects.equals(featureName, other.featureName);
 	}
 
+	@Override
+	public String toString() {
+		return "ResolutionDeleteFeature [featureName=" + featureName + "]";
+	}
+
 }

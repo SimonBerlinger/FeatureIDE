@@ -21,7 +21,6 @@
 package de.ovgu.featureide.fm.ui.quickfix;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -30,6 +29,7 @@ import java.util.Set;
 
 import org.eclipse.ui.IMarkerResolution;
 import org.prop4j.And;
+import org.prop4j.Implies;
 import org.prop4j.Literal;
 import org.prop4j.Node;
 
@@ -79,6 +79,13 @@ public class DefectResolutionProvider {
 			final IFeature featureA = featureModel.getFeature(reason.toNode().getContainedFeatures().get(0));
 			final IFeature featureB = featureModel.getFeature(reason.toNode().getContainedFeatures().get(1));
 
+			if (reason.toNode().toString()
+					.equals(new Implies(new Literal(featureA.getName()), new Literal(featureModel.getStructure().getRoot().getFeature().getName())).toString())
+				|| reason.toNode().toString().equals(
+						new Implies(new Literal(featureB.getName()), new Literal(featureModel.getStructure().getRoot().getFeature().getName())).toString())) {
+				return null;
+			}
+
 			if ((featureA.getStructure().getParent() != null) && featureA.getStructure().getParent().getFeature().equals(featureB)) {
 				if (featureA.getStructure().isMandatory()) {
 					offeredResolutions.add(new ResolutionMakeOptional(fmManager, featureA, featurePrefix));
@@ -101,6 +108,7 @@ public class DefectResolutionProvider {
 	 * @param offeredResolutions The set to which found resolutions for the exclusion are added
 	 * @param possiblyExcluded The name of the feature, which might be excluded
 	 * @param possibleReason The name of the feature possibly excluding {@code possiblyExcluded}
+	 * @param featurePrefix The current feature-prefix for the label of the resolutions.
 	 *
 	 * @return true, if possiblyExcluded is excluded by possibleReason
 	 */
@@ -161,20 +169,46 @@ public class DefectResolutionProvider {
 	}
 
 	/**
+	 * Checks, a feature excludes its own parent and adds the respective resolutions to the set of resolutions
+	 *
+	 * @param reasons The set of reasons.
+	 * @param offeredResolutions The set of offered resolutions.
+	 * @param childOfExcluded The feature, that potentially excludes its parent.
+	 * @param involvedFeatures The set of all features, that occur in the reasons.
+	 * @param featurePrefix The prefix for the feature.
+	 */
+	void checkParentExclusion(Set<Reason<?>> reasons, Set<IMarkerResolution> offeredResolutions, String childOfExcluded, Set<String> involvedFeatures,
+			String featurePrefix) {
+
+		final IFeature child = featureModel.getFeature(childOfExcluded);
+
+		final String parentName = child.getStructure().getParent().getFeature().getName();
+
+		for (final String f : involvedFeatures) {
+			checkExclusion(reasons, offeredResolutions, f, parentName, featurePrefix);
+		}
+	}
+
+	/**
 	 * Checks, if the reasons contain a constraint, where {@code possibleReason} implies {@code possiblyImplied}
 	 *
 	 * @param reasons The set of reasons, where the implication is searched
 	 * @param offeredResolutions The set of resolutions to which possible resolutions of the implication are added
-	 * @param possiblyImplied The name of the feature, that might be implied
+	 * @param possiblyImplied The name of the false-optional feature, that might be implied
 	 * @param possibleReason The name of the feature, that might imply {@code possiblyImplied}
+	 * @param featurePrefix The current feature-prefix for the label of the resolutions.featurePrefix
+	 * @param isOriginalDefect Defines, if the current defect is the original defect (making a false-optional mandatory is no solution, if the false-optional is
+	 *        causing another defect)
 	 */
 	void checkImplicationConstraintForFalseOptional(Set<Reason<?>> reasons, Set<IMarkerResolution> offeredResolutions, IFeature possiblyImplied,
-			IFeature possibleReason, String featurePrefix) {
+			IFeature possibleReason, String featurePrefix, boolean isOriginalDefect) {
 		for (final Reason<?> reason : reasons) {
-			if (testForImplication(possiblyImplied.getName(), List.of(possibleReason.getName()), reason.toNode()).size() > 0) {
+			if (testForImplication(List.of(possibleReason.getName()), possiblyImplied.getName(), reason.toNode()).size() > 0) {
 				offeredResolutions.add(new ResolutionDeleteConstraint(reason.toNode(), fmManager, featurePrefix));
-				offeredResolutions.add(new ResolutionMakeMandatory(fmManager, possiblyImplied.getName(),
-						Features.getCommonAncestor(List.of(possiblyImplied, possibleReason)).getName(), featurePrefix));
+				if (isOriginalDefect) {
+					offeredResolutions.add(new ResolutionMakeMandatory(fmManager, possiblyImplied.getName(),
+							Features.getCommonAncestor(List.of(possiblyImplied, possibleReason)).getName(), featurePrefix));
+				}
 				IConstraint editConstraint = null;
 
 				for (final IConstraint c : featureModel.getConstraints()) {
@@ -198,6 +232,7 @@ public class DefectResolutionProvider {
 	 * @param offeredResolutions The set of resolutions, to which found resolutions are added
 	 * @param affectedFeature The feature which is possibly excluded
 	 * @param featurePrefix The prefix for the resolutions to show in the quick fix dialog
+	 * @param involvedFeatures The set of involved features.
 	 */
 	void checkForExcludingFalseOptionals(Set<Reason<?>> reasons, Set<IMarkerResolution> offeredResolutions, IFeature affectedFeature, String featurePrefix,
 			Set<String> involvedFeatures) {
@@ -217,6 +252,7 @@ public class DefectResolutionProvider {
 	 * @param offeredResolutions The set of resolutions, to which found resolutions are added
 	 * @param affectedFeature The feature, that might be implied
 	 * @param featurePrefix The prefix for the resolutions to show in the quick fix dialog
+	 * @param involvedFeatures The set of involved features.
 	 * @return true, if an implication was found, false otherwise
 	 */
 	boolean checkForImplyingFalseOptionals(Set<Reason<?>> reasons, Set<IMarkerResolution> offeredResolutions, IFeature affectedFeature, String featurePrefix,
@@ -241,16 +277,15 @@ public class DefectResolutionProvider {
 	 * @param featurePrefix The prefix for the resolutions to show in the quick fix dialog
 	 */
 	void checkImpliesOwnExclusion(Set<Reason<?>> reasons, Set<IMarkerResolution> offeredResolutions, IFeature affectedFeature, String featurePrefix) {
-		// Map containing feature-names and the Node, in which it it implied by {@code affectedFeature}
+		// Map containing feature-names and the Node, in which it is implied through {@code affectedFeature}
 		final Map<String, Node> impliedFeatures = new HashMap<>();
 
 		for (final Reason<?> r : reasons) {
-
 			if (r.getSubject() instanceof FeatureModelToNodeTraceModel.FeatureModelElementTrace) {
 				final FeatureModelToNodeTraceModel.FeatureModelElementTrace traceModel = (FeatureModelToNodeTraceModel.FeatureModelElementTrace) r.getSubject();
 				if (traceModel.getOrigin() == Origin.CONSTRAINT) {
 					for (final String f : r.toNode().getContainedFeatures()) {
-						if (testForImplication(f, List.of(affectedFeature.getName()), r.toNode()).contains(affectedFeature.getName())) {
+						if (testForImplication(affectedFeature.getName(), f, r.toNode()).contains(affectedFeature.getName())) {
 							impliedFeatures.put(f, r.toNode());
 						}
 					}
@@ -259,7 +294,6 @@ public class DefectResolutionProvider {
 		}
 
 		final Node allReasons = new And();
-
 		final Node[] reasonNodes = new Node[reasons.size()];
 
 		for (int i = 0; i < reasons.size(); i++) {
@@ -270,11 +304,8 @@ public class DefectResolutionProvider {
 
 		for (final String implied : impliedFeatures.keySet()) {
 			if (isExcluding(implied, affectedFeature.getName(), allReasons)) {
-				offeredResolutions.add(new ResolutionDeleteConstraint((org.prop4j.Node) impliedFeatures.get(implied), fmManager, featurePrefix));
-
-				if (((org.prop4j.Node) impliedFeatures.get(implied)).getContainedFeatures().size() > 2) {
-					offeredResolutions.add(new ResolutionEditConstraint(((org.prop4j.Node) impliedFeatures.get(implied)), fmManager, featurePrefix));
-				}
+				offeredResolutions.add(new ResolutionDeleteConstraint(impliedFeatures.get(implied), fmManager, featurePrefix));
+				offeredResolutions.add(new ResolutionEditConstraint(impliedFeatures.get(implied), fmManager, featurePrefix));
 			}
 		}
 	}
@@ -310,7 +341,7 @@ public class DefectResolutionProvider {
 				involvedFeatures.stream().filter(x -> analyzer.getFalseOptionalFeatures(null).stream().map(ft -> ft.getName()).toList().contains(x)).toList());
 		final Set<String> result = new HashSet<>();
 		for (final Reason<?> r : reasons) {
-			result.addAll(testForImplication(falseOptionalFeature, falseOptionals, r.toNode()));
+			result.addAll(testForImplication(falseOptionals, falseOptionalFeature, r.toNode()));
 		}
 		return result;
 	}
@@ -363,14 +394,30 @@ public class DefectResolutionProvider {
 	}
 
 	/**
+	 * Determines, if a feature is excluding another feature through a specified reason.
 	 *
-	 * @param possibleReason
-	 * @param excluded
-	 * @param reason
-	 * @return
+	 * @param possibleReason The feature, that is potentially excluding.
+	 * @param excluded The feature, that is potentially excluded
+	 * @param reason The reason to be checked
+	 * @return True, if {@code possibleReason} is excluding {@code excluded}
 	 */
-	boolean isExcluding(String possibleReasonFeature, String excludedFeature, Node reason) {
-		if (testForExclusion(excludedFeature, List.of(possibleReasonFeature), reason).isEmpty()) {
+	boolean isExcluding(String possibleReason, String excluded, Node reason) {
+		if (testForExclusion(excluded, List.of(possibleReason), reason).isEmpty()) {
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Determines, if a feature is implying another feature through a specified reason.
+	 *
+	 * @param possibleReason The feature, that is potentially implying the other.
+	 * @param implied The feature, that is potentially implied
+	 * @param reason The reason to be checked
+	 * @return True, if {@code possibleReason} is implying {@code excluded}
+	 */
+	boolean isImplying(String possibleReason, String implied, Reason<?> reason) {
+		if (testForImplication(List.of(possibleReason), implied, reason.toNode()).isEmpty()) {
 			return false;
 		}
 		return true;
@@ -378,28 +425,28 @@ public class DefectResolutionProvider {
 
 	/**
 	 *
-	 * @param possibleReason
-	 * @param implied
-	 * @param reason
-	 * @return
+	 * Checks, if the features {@code possiblyExcluding} implies the feature {@code excludedFeature} in the formula {@code formula} is based on.
+	 *
+	 * @param possiblyImplying THe possibly implying feature.
+	 * @param impliedFeature The feature, that might be implied.
+	 * @param formula The node, that is to be checked for implications.
+	 * @return The list of features that would always imply {@code excludedFeature}, when the formula from {@code r} evaluates to true.
 	 */
-	boolean isImplying(String possibleReasonFeature, String impliedFeature, Reason<?> reason) {
-		if (testForImplication(impliedFeature, List.of(possibleReasonFeature), reason.toNode()).isEmpty()) {
-			return false;
-		}
-		return true;
+	private List<String> testForImplication(String possiblyImplying, String impliedFeature, Node formula) {
+		return testForImplication(List.of(possiblyImplying), impliedFeature, formula);
 	}
 
 	/**
 	 *
 	 * Checks, which of the features from {@code possiblyExcluding} imply the feature {@code excludedFeature} in the formula that {@code r} is based on.
 	 *
-	 * @param impliedFeature
-	 * @param possiblyImplying
-	 * @param formula
-	 * @return The list of features that would always imply {@code excludedFeature}, when the formula from {@code r} evaluates to true.
+	 * @param possiblyImplying The list of possibly implying features.
+	 * @param impliedFeature The feature, that might be implied.
+	 * @param formula The node, that is to be checked for implications.
+	 *
+	 * @return The list of features that would always imply {@code excludedFeature}, when the formula {@code formula} evaluates to true.
 	 */
-	private List<String> testForImplication(String impliedFeature, List<String> possiblyImplying, final Node formula) {
+	private List<String> testForImplication(List<String> possiblyImplying, String impliedFeature, final Node formula) {
 
 		final List<String> implying = new ArrayList<>();
 
@@ -441,6 +488,15 @@ public class DefectResolutionProvider {
 		return implying;
 	}
 
+	/**
+	 *
+	 * Checks, if a feature implies multiple alternatives of the same group and adds the resolutions to the set of resolutions.
+	 *
+	 * @param reasons The set of reasons for the defect.
+	 * @param offeredResolutions The set of offered resolutions.
+	 * @param affectedFeature The current dead feature to be checked
+	 * @param featurePrefix The current feature-prefix for the quick-fix label
+	 */
 	void checkImpliesMultiAlt(Set<Reason<?>> reasons, Set<IMarkerResolution> offeredResolutions, IFeature affectedFeature, String featurePrefix) {
 
 		final Map<String, Map<String, Node>> impliedAlternatives = new HashMap<>();
@@ -485,7 +541,7 @@ public class DefectResolutionProvider {
 						offeredResolutions.add(new ResolutionEditConstraint(editConstraint, fmManager, featurePrefix));
 
 					} else {
-						Logger.logWarning("Constraint " + implyingNode + " was not found");
+						Logger.logWarning("Constraint for " + implyingNode + " was not found");
 					}
 
 					offeredResolutions.add(new ResolutionDeleteConstraint(implyingNode, fmManager, featurePrefix));
@@ -498,9 +554,9 @@ public class DefectResolutionProvider {
 	/**
 	 * Checks, if the feature {@code featureName} is true in any of the satisfying assignments of {@code node}
 	 *
-	 * @param featureName
-	 * @param node
-	 * @return
+	 * @param featureName The name of the feature.
+	 * @param node The formula to be tested.
+	 * @return True, if the feature can be selected
 	 */
 	boolean canBeSelectedInConstraint(String featureName, Node node) {
 
@@ -516,11 +572,13 @@ public class DefectResolutionProvider {
 	}
 
 	/**
-	 * @param reasons
-	 * @param affectedFeature
-	 * @param offeredResolutions
-	 * @param featurePrefix
-	 * @param involvedFeatures
+	 *
+	 * Determines and returns a list of dead features, that are implied by a feature.
+	 *
+	 * @param reasons The reasons, where the implications are searched.
+	 * @param affectedFeature THe feature, that may imply dead features.
+	 * @param involvedFeatures The set of features involved in the reasons.
+	 * @return A list of the implied dead features.
 	 */
 	private List<String> getImpliedDeadFeatures(Set<Reason<?>> reasons, String affectedFeature, Set<String> involvedFeatures) {
 		final List<String> deadFeatures = new ArrayList<String>(
@@ -536,10 +594,22 @@ public class DefectResolutionProvider {
 		return result;
 	}
 
+	/**
+	 *
+	 * Checks, if a feature implies dead features, and if so, adds its resolutions to the set of resolutions.
+	 *
+	 * @param reasons The current set of reasons.
+	 * @param offeredResolutions The set of resolutions.
+	 * @param affectedFeature The feature, that may imply dead features.
+	 * @param featurePrefix The current feature-prefix for the label of the resolutions.
+	 * @param involvedFeatures The set of involved features.
+	 * @return True, if at least one dead feature is implied.
+	 */
 	boolean checkImpliedDeadFeatures(Set<Reason<?>> reasons, Set<IMarkerResolution> offeredResolutions, IFeature affectedFeature, String featurePrefix,
 			Set<String> involvedFeatures) {
 		final List<String> deadFeatures = getImpliedDeadFeatures(reasons, affectedFeature.getName(), involvedFeatures);
 
+		// Only add resolutions for the first found implied dead feature to avoid too long lists of resolutions
 		if (deadFeatures.size() > 0) {
 			quickFixHandler.getDeadFeatureResolutions(this, offeredResolutions, featureModel.getFeature(deadFeatures.get(0)));
 			return true;
@@ -550,13 +620,12 @@ public class DefectResolutionProvider {
 	/**
 	 * checks, if enough alternatives are dead to make a feature false optional
 	 *
-	 * @param reasons
-	 * @param offeredResolutions
-	 * @param affectedFeature
-	 * @param featurePrefix
-	 * @param string
+	 * @param reasons The current set of reasons.
+	 * @param offeredResolutions The set of offered resolutions.
+	 * @param affectedFeature The feature, that might be false-optional because of exclusions.
+	 * @param featurePrefix The current feature-prefix for the label of the resolutions.
 	 */
-	void checkAlternativeExclusion(Set<Reason<?>> reasons, Set<IMarkerResolution> offeredResolutions, IFeature affectedFeature, String prefix, String postfix) {
+	void checkAlternativeExclusion(Set<Reason<?>> reasons, Set<IMarkerResolution> offeredResolutions, IFeature affectedFeature, String featurePrefix) {
 
 		final IFeature parent = affectedFeature.getStructure().getParent().getFeature();
 		final Set<IMarkerResolution> proposedResolutions = new HashSet<>();
@@ -566,7 +635,7 @@ public class DefectResolutionProvider {
 				if (!analyzer.getDeadFeatures(null).contains(child) && !child.getName().equals(affectedFeature.getName())) {
 					return;
 				} else if (!child.getName().equals(affectedFeature.getName())) {
-					System.out.println("DEAD FIX FOR " + affectedFeature.getName() + " CHILD " + child.getName());
+
 					quickFixHandler.getDeadFeatureResolutions(this, proposedResolutions, child);
 				}
 			}
@@ -575,10 +644,12 @@ public class DefectResolutionProvider {
 		}
 	}
 
-	void checkExcludesParent() {
-		// TODO
-	}
-
+	/**
+	 * Checks, if a reason originates from a constraint.
+	 *
+	 * @param reason THe reason to check.
+	 * @return True if the reason originates from a constraint.
+	 */
 	boolean isReasonConstraint(Reason<?> reason) {
 		if (reason.getSubject() instanceof FeatureModelToNodeTraceModel.FeatureModelElementTrace) {
 			return ((FeatureModelToNodeTraceModel.FeatureModelElementTrace) reason.getSubject()).getOrigin() == Origin.CONSTRAINT;
@@ -586,6 +657,17 @@ public class DefectResolutionProvider {
 		return false;
 	}
 
+	/**
+	 * Checks, which of the clauses of the cnf representation of {@code possiblyContained} are redundant in {@code constraint} and adds resolutions to either
+	 * delete {@code possiblyContained} or to adapt {@code constraint}.
+	 *
+	 * @param possiblyContained The formula, that might be contained in {@code constraint}
+	 * @param constraint The formula, that contains information from {@code possiblyContained}
+	 * @param offeredResolutions The set of resolutions.
+	 * @param isContainedRelation Indicates, whether the contained constraint originates from a relation.
+	 * @param isConstraintRelation Indicates, whether the constraint, in which {@code possiblyContained} is contained, originates from a relation.
+	 * @return True, if all clauses or {@code possiblyContained} are contained in {@code constraint}
+	 */
 	boolean checkClausesContained(Node possiblyContained, Node constraint, Set<IMarkerResolution> offeredResolutions, boolean isContainedRelation,
 			boolean isConstraintRelation) {
 
@@ -621,24 +703,20 @@ public class DefectResolutionProvider {
 
 		} else if (!isConstraintRelation) {
 			// All clauses of {@code possiblyContained} are contained in {@code constraint}
-			boolean changed = false;
+
 			for (final Node clause : clausesOfContained) {
 				clausesOfConstraint.remove(clause);
-				changed = true;
 			}
 
-			if (changed) {
-
-				final Node[] newChildren = new Node[clausesOfConstraint.size()];
-				for (int i = 0; i < clausesOfConstraint.size(); i++) {
-					newChildren[i] = clausesOfConstraint.get(i);
-				}
-
-				final Node newConstraint = new And();
-				newConstraint.setChildren(newChildren);
-
-				offeredResolutions.add(new ResolutionSetConstraint(fmManager, constraint, newConstraint, ""));
+			final Node[] newChildren = new Node[clausesOfConstraint.size()];
+			for (int i = 0; i < clausesOfConstraint.size(); i++) {
+				newChildren[i] = clausesOfConstraint.get(i);
 			}
+
+			final Node newConstraint = new And();
+			newConstraint.setChildren(newChildren);
+
+			offeredResolutions.add(new ResolutionSetConstraint(fmManager, constraint, newConstraint, ""));
 
 		}
 
@@ -651,53 +729,50 @@ public class DefectResolutionProvider {
 	}
 
 	/**
+	 * Removes clauses, that are redundant to a formula.
+	 *
 	 * @param clauses The clauses, that are checked for redundancy
-	 * @param assignments The assignments of the formula in which the clause is checked for redundancy
-	 * @param toRemove
+	 * @param constraint The formula, to which redundancies are tested.
+	 * @return True, if any of the clauses are redundant and were removed.
 	 */
 	private boolean removeRedundantClauses(final List<Node> clauses, Node constraint) {
 		boolean changed = false;
-		System.out.println("   Constraint: " + constraint + " Clauses: " + clauses);
+
 		final Set<Map<Object, Boolean>> assignments = constraint.getSatisfyingAssignments();
 		final List<Node> toRemove = new ArrayList<>();
 		for (final Node clause : clauses) {
-			System.out.println("     Current clause: " + clause);
 
 			boolean redundant = true;
 
 			final Node[] literals = clause.getChildren() != null ? clause.getChildren() : new Node[] { clause };
 
 			for (final Map<Object, Boolean> assignment : assignments) {
-				System.out.println("          Current assignment: " + assignment);
 
 				boolean literalSatisfied = false;
 
 				for (final Node literal : literals) {
-					System.out.println("               Current literal: " + literal + ": " + literal.getClass() + " :: "
-						+ Arrays.toString(literal.getChildren()) + " pos? " + literal);
-					System.out.println("Contains?: " + assignment.keySet().contains(literal.getContainedFeatures().get(0)));
-					System.out.println("Value?: " + assignment.get(literal.getContainedFeatures().get(0)));
+
 					if (literal instanceof Literal) {
 
 						if (((Literal) literal).positive && assignment.keySet().contains(literal.getContainedFeatures().get(0))
 							&& assignment.get(literal.getContainedFeatures().get(0))) {
 							literalSatisfied = true;
-							System.out.println("               Satisfied");
+
 							break;
 						} else if (!((Literal) literal).positive && assignment.keySet().contains(literal.getContainedFeatures().get(0))
 							&& !assignment.get(literal.getContainedFeatures().get(0))) {
 								literalSatisfied = true;
-								System.out.println("               Satisfied");
+
 								break;
 							}
 					} else {
-						System.out.println("LITERAL???");
+
 					}
 				}
 
 				// if a satisfying assignment of the constraint does not satisfy any of the literals of the cnf-clause, the clause is not redundant
 				if (!literalSatisfied) {
-					System.out.println("clause " + clause + " is not redundant");
+
 					redundant = false;
 					break;
 				}
@@ -715,7 +790,14 @@ public class DefectResolutionProvider {
 		return changed;
 	}
 
-	void checkMultipleRedunanycReasons(IConstraint possiblyContained, Set<Reason<?>> reasons, Set<IMarkerResolution> offeredResolutions) {
+	/**
+	 * Checks, if a redundant constraint is contained in multiple other constraints and adds resolutions to the set of resolutons.
+	 *
+	 * @param possiblyContained The redundant constraint.
+	 * @param reasons The current set of reasons.
+	 * @param offeredResolutions The set of resolutions.
+	 */
+	void checkMultipleRedundanycReasons(IConstraint possiblyContained, Set<Reason<?>> reasons, Set<IMarkerResolution> offeredResolutions) {
 
 		for (final Reason<?> r : reasons) {
 			checkClausesContained(r.toNode(), possiblyContained.getNode(), offeredResolutions, isReasonConstraint(r), false);
@@ -727,18 +809,20 @@ public class DefectResolutionProvider {
 	}
 
 	/**
-	 * @param cnf
-	 * @return
+	 * Returns the clauses of a formula in conjunctive normal form.
+	 *
+	 * @param cnf The formula.
+	 * @return The list of clauses.
 	 */
 	private List<Node> getClausesOfCnf(Node cnf) {
 		final List<Node> clauses = new ArrayList<>();
+		cnf = cnf.toCNF();
 
 		if (cnf instanceof Literal) {
 			clauses.add(cnf);
 			return clauses;
 		}
 
-		// this expects a Node in cnf, so the children are clauses of the cnf
 		for (final Node n : cnf.getChildren()) {
 			if (!clauses.contains(n)) {
 				clauses.add(n);

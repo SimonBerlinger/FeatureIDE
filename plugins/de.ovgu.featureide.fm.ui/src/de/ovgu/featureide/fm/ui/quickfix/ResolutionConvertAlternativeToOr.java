@@ -20,6 +20,8 @@
  */
 package de.ovgu.featureide.fm.ui.quickfix;
 
+import java.util.Objects;
+
 import org.eclipse.core.resources.IMarker;
 
 import de.ovgu.featureide.fm.core.base.IFeature;
@@ -60,6 +62,31 @@ public class ResolutionConvertAlternativeToOr extends AbstractResolution {
 
 		fmManager.save();
 		fmManager.overwrite();
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(alternativeParent);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		final ResolutionConvertAlternativeToOr other = (ResolutionConvertAlternativeToOr) obj;
+		return Objects.equals(alternativeParent, other.alternativeParent);
+	}
+
+	@Override
+	public String toString() {
+		return "ResolutionConvertAlternativeToOr [alternativeParent=" + alternativeParent + "]";
 	}
 
 }

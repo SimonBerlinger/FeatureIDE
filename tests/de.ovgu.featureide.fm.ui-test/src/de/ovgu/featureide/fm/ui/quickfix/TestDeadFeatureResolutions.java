@@ -20,85 +20,28 @@
  */
 package de.ovgu.featureide.fm.ui.quickfix;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.util.HashSet;
-import java.util.Set;
-
-import org.eclipse.ui.IMarkerResolution;
 import org.junit.Test;
 import org.prop4j.Implies;
 import org.prop4j.Literal;
-import org.prop4j.Node;
 import org.prop4j.Not;
 
-import de.ovgu.featureide.Commons;
-import de.ovgu.featureide.fm.core.FeatureModelAnalyzer;
 import de.ovgu.featureide.fm.core.analysis.FeatureProperties.FeatureStatus;
-import de.ovgu.featureide.fm.core.base.IConstraint;
-import de.ovgu.featureide.fm.core.base.IFeatureModel;
-import de.ovgu.featureide.fm.core.explanations.Reason;
-import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 
 /**
  * TODO description
  *
  * @author Simon Berlinger
  */
-public class TestDeadFeatureResolutions {
 
-	FeatureModelManager fmManager;
-	IFeatureModel featureModel;
-	FeatureModelAnalyzer analyzer;
-	Set<Reason<?>> reasons;
-	DefectResolutionProvider resolutionProvider;
-	Set<IMarkerResolution> resolutions;
-	DefectQuickFixHandler dqh;
-
-	//
-	private void loadFeatureModelAndInitialize(String filename, FeatureStatus defectType, String defectFeatureName) {
-		fmManager = Commons.loadTestFeatureModelFromFile(filename);
-		featureModel = fmManager.getPersistentFormula().getFeatureModel();
-		analyzer = fmManager.getPersistentFormula().getAnalyzer();
-
-		switch (defectType) {
-		case DEAD:
-			reasons = analyzer.getDeadFeatureExplanation(featureModel.getFeature(defectFeatureName)).getReasons();
-			break;
-		case FALSE_OPTIONAL:
-			reasons = analyzer.getFalseOptionalFeatureExplanation(featureModel.getFeature(defectFeatureName)).getReasons();
-			break;
-		default:
-			return;
-		}
-
-		analyzer.analyzeFeatureModel(null);
-		resolutions = new HashSet<>();
-		dqh = new DefectQuickFixHandler();
-		dqh.analyzer = analyzer;
-		dqh.featureModelFormula = fmManager.getPersistentFormula();
-	}
-
-	private IConstraint getConstraintForNode(Node node) {
-		return (IConstraint) featureModel.getConstraints().stream().filter(x -> x.getNode().equals(node)).toArray()[0];
-	}
-
-	/**
-	 *
-	 */
-	private void getDeadFeatureResolutions(String featureName) {
-		final long t0 = System.currentTimeMillis();
-		resolutionProvider =
-			new DefectResolutionProvider(fmManager.getPersistentFormula().getFeatureModel(), fmManager, fmManager.getPersistentFormula().getAnalyzer(), dqh);
-		dqh.getDeadFeatureResolutions(resolutionProvider, resolutions, featureModel.getFeature(featureName));
-		System.out.println("DURATION: " + (System.currentTimeMillis() - t0) + "ms ");
-
-	}
+public class TestDeadFeatureResolutions extends AbstractResolutionTest {
 
 	@Test
-	public void testExcludedOptionalDead() {
+	public void testExcludeOptional() {
 
-		loadFeatureModelAndInitialize("dead_optional_excluded.xml", FeatureStatus.DEAD, "Adjective");
+		analyzeFeatureModel("dead_optional_excluded.xml", FeatureStatus.DEAD, "Adjective", "testExcludeOptional");
 
 		getDeadFeatureResolutions("Adjective");
 
@@ -109,15 +52,133 @@ public class TestDeadFeatureResolutions {
 	}
 
 	@Test
-	public void testAlternativeImplicationDead() {
+	public void testAlternativeImplication() {
 
-		loadFeatureModelAndInitialize("dead_imply_alternative.xml", FeatureStatus.DEAD, "Exclamation Mark");
+		analyzeFeatureModel("dead_imply_alternative.xml", FeatureStatus.DEAD, "Exclamation Mark", "testAlternativeImplication");
 
 		getDeadFeatureResolutions("Exclamation Mark");
 
 		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("Hello"), null)));
 		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("Hello"), new Literal("Period")), fmManager)));
+		assertTrue(resolutions
+				.contains(new ResolutionEditConstraint(getConstraintForNode(new Implies(new Literal("Hello"), new Literal("Period"))), fmManager, "")));
+		assertTrue(resolutions.contains(new ResolutionConvertAlternativeToOr(fmManager, featureModel.getFeature("Punctuation"), "")));
+	}
 
+	@Test
+	public void testAltImplyAlt() {
+
+		analyzeFeatureModel("dead_alternative_imply_alternative.xml", FeatureStatus.DEAD, "Period", "testAltImplyAlt");
+
+		getDeadFeatureResolutions("Period");
+
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("Period"), new Literal("Exclamation Mark")), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionConvertAlternativeToOr(fmManager, featureModel.getFeature("Punctuation"), "")));
+
+		// Exclusion results from the alternative group and cannot be deleted
+		assertFalse(resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("Exclamation Mark"), new Not("Period")), fmManager)));
+	}
+
+	@Test
+	public void testImplyMultiAlt() {
+
+		analyzeFeatureModel("dead_imply_multi_alternative.xml", FeatureStatus.DEAD, "Adjective", "testImplyMultiAlt");
+
+		getDeadFeatureResolutions("Adjective");
+
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("Adjective"), new Literal("Period")), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("Adjective"), new Literal("Exclamation Mark")), fmManager)));
+		assertTrue(resolutions
+				.contains(new ResolutionEditConstraint(getConstraintForNode(new Implies(new Literal("Adjective"), new Literal("Period"))), fmManager, "")));
+		assertTrue(resolutions.contains(
+				new ResolutionEditConstraint(getConstraintForNode(new Implies(new Literal("Adjective"), new Literal("Exclamation Mark"))), fmManager, "")));
+	}
+
+	@Test
+	public void testSimultaneousImplyExclude() {
+		analyzeFeatureModel("dead_simultaneous_imply_exclude.xml", FeatureStatus.DEAD, "Adjective", "testSimultaneousImplyExclude");
+
+		getDeadFeatureResolutions("Adjective");
+
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("Adjective"), new Literal("Exclamation Mark")), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("Exclamation Mark"), new Not("Adjective")), fmManager)));
+		assertTrue(resolutions.contains(
+				new ResolutionEditConstraint(getConstraintForNode(new Implies(new Literal("Adjective"), new Literal("Exclamation Mark"))), fmManager, "")));
+		assertTrue(resolutions.contains(
+				new ResolutionEditConstraint(getConstraintForNode(new Implies(new Literal("Exclamation Mark"), new Not("Adjective"))), fmManager, "")));
+	}
+
+	@Test
+	public void testExcludeParent() {
+		analyzeFeatureModel("dead_exclude_parent.xml", FeatureStatus.DEAD, "Truly", "testExcludeParent");
+
+		getDeadFeatureResolutions("Truly");
+
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("Truly"), new Literal("My")), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("My"), new Not("Adverb")), fmManager)));
+		assertTrue(
+				resolutions.contains(new ResolutionEditConstraint(getConstraintForNode(new Implies(new Literal("Truly"), new Literal("My"))), fmManager, "")));
+		assertTrue(resolutions.contains(new ResolutionEditConstraint(getConstraintForNode(new Implies(new Literal("My"), new Not("Adverb"))), fmManager, "")));
+
+	}
+
+	@Test
+	public void testDeadFeatureImplicationChain() {
+		analyzeFeatureModel("dead_implication_chain.xml", FeatureStatus.DEAD, "My", "testDeadFeatureImplicationChain");
+
+		getDeadFeatureResolutions("My");
+
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("My"), new Literal("Absolutely")), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("Hello"), new Not("Exclamation Mark")), fmManager)));
+
+		assertTrue(resolutions
+				.contains(new ResolutionEditConstraint(getConstraintForNode(new Implies(new Literal("My"), new Literal("Absolutely"))), fmManager, "")));
+		assertTrue(resolutions
+				.contains(new ResolutionEditConstraint(getConstraintForNode(new Implies(new Literal("Hello"), new Not("Exclamation Mark"))), fmManager, "")));
+
+		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("Hello"), "")));
+	}
+
+	@Test
+	public void testExcludedByFalseOptional() {
+		analyzeFeatureModel("false_optional_implication_chain.xml", FeatureStatus.DEAD, "Exclamation Mark", "testExcludedByFalseOptional");
+
+		getDeadFeatureResolutions("Exclamation Mark");
+
+		assertTrue(resolutions.contains(new ResolutionConvertAlternativeToOr(fmManager, featureModel.getFeature("Punctuation"), "")));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("Hello"), new Literal("Beautiful")), fmManager)));
+		assertTrue(resolutions
+				.contains(new ResolutionEditConstraint(getConstraintForNode(new Implies(new Literal("Hello"), new Literal("Beautiful"))), fmManager, "")));
+		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("Hello"), "")));
+
+		assertFalse(resolutions.contains(new ResolutionMakeMandatory(fmManager, "Beautiful", "Sentence", "")));
+	}
+
+	public void testDeactivatedFeature() {
+		analyzeFeatureModel("dead_deactivated_features.xml", FeatureStatus.DEAD, "Period", "testDeactivatedFeature");
+
+		getDeadFeatureResolutions("Period");
+
+		assertTrue(resolutions.size() == 1);
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(new Not("Period"), fmManager)));
+	}
+
+	public void testConvertToDeactivatedFeature() {
+		analyzeFeatureModel("dead_deactivated_features.xml", FeatureStatus.DEAD, "Hello", "testConvertToDeactivatedFeature");
+		getDeadFeatureResolutions("Hello");
+		assertTrue(resolutions.contains(new ResolutionCreateConstraint(new Not("Hello"), fmManager)));
+
+		analyzeFeatureModel("dead_deactivated_features.xml", FeatureStatus.DEAD, "Beautiful", "");
+		getDeadFeatureResolutions("Beautiful");
+		assertTrue(resolutions.contains(new ResolutionCreateConstraint(new Not("Beautiful"), fmManager)));
+
+		analyzeFeatureModel("dead_deactivated_features.xml", FeatureStatus.DEAD, "Wonderful", "");
+		getDeadFeatureResolutions("Wonderful");
+		assertTrue(resolutions.contains(new ResolutionCreateConstraint(new Not("Wonderful"), fmManager)));
+
+		analyzeFeatureModel("dead_deactivated_features.xml", FeatureStatus.DEAD, "World", "");
+		getDeadFeatureResolutions("World");
+		assertTrue(resolutions.contains(new ResolutionCreateConstraint(new Not("World"), fmManager)));
 	}
 
 }

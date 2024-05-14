@@ -20,6 +20,8 @@
  */
 package de.ovgu.featureide.fm.ui.quickfix;
 
+import java.util.Objects;
+
 import org.eclipse.core.resources.IMarker;
 import org.prop4j.Node;
 
@@ -66,6 +68,31 @@ public class ResolutionSetConstraint extends AbstractResolution {
 		fmManager.save();
 		fmManager.overwrite();
 
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(newNode, originalNode);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		final ResolutionSetConstraint other = (ResolutionSetConstraint) obj;
+		return Objects.equals(newNode, other.newNode) && Objects.equals(originalNode, other.originalNode);
+	}
+
+	@Override
+	public String toString() {
+		return "ResolutionSetConstraint [originalNode=" + originalNode + ", newNode=" + newNode + "]";
 	}
 
 }

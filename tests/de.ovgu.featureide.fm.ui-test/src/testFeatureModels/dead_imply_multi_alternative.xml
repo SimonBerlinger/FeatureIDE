@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<featureModel>
+	<properties>
+		<graphics key="autolayoutconstraints" value="false"/>
+		<graphics key="legendautolayout" value="true"/>
+		<graphics key="showconstraints" value="true"/>
+		<graphics key="showshortnames" value="false"/>
+		<graphics key="layout" value="horizontal"/>
+		<graphics key="showcollapsedconstraints" value="true"/>
+		<graphics key="legendhidden" value="false"/>
+		<graphics key="layoutalgorithm" value="1"/>
+	</properties>
+	<struct>
+		<and abstract="true" mandatory="true" name="Sentence">
+			<feature mandatory="true" name="Hello"/>
+			<or abstract="true" name="Adjective">
+				<feature name="Beautiful"/>
+				<feature name="Wonderful"/>
+			</or>
+			<feature mandatory="true" name="World"/>
+			<alt abstract="true" mandatory="true" name="Punctuation">
+				<feature name="Period"/>
+				<feature name="Exclamation Mark"/>
+			</alt>
+		</and>
+	</struct>
+	<constraints>
+		<rule>
+			<imp>
+				<var>Adjective</var>
+				<var>Period</var>
+			</imp>
+		</rule>
+		<rule>
+			<imp>
+				<var>Adjective</var>
+				<var>Exclamation Mark</var>
+			</imp>
+		</rule>
+	</constraints>
+</featureModel>

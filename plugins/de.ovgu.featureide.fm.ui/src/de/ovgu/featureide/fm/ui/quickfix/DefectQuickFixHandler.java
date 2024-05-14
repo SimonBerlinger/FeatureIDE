@@ -45,7 +45,7 @@ import de.ovgu.featureide.fm.core.explanations.Reason;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 
 /**
- * TODO description
+ * This class is responsible for returning the set of resolutions for a feature model defect.
  *
  * @author Simon Berlinger
  */
@@ -55,12 +55,11 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 	FeatureModelFormula featureModelFormula;
 	private FeatureModelManager fmManager;
 	private String originalDefectName = "";
+
 	private HashMap<String, Boolean> encounteredFeatures = new HashMap<>();
 
 	@Override
 	public IMarkerResolution[] getResolutions(IMarker marker) {
-
-		System.out.println("START FIX");
 
 		IFeatureProject project = null;
 
@@ -83,22 +82,20 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 
 				analyzer = featureModelFormula.getAnalyzer();
 				analyzer.analyzeFeatureModel(null); // TODO find possibility without calling analysis. Somehow, without this, void feature models do not have
-				// void status without
+				// void status
 
 				fmManager = (FeatureModelManager) project.getFeatureModelManager();
 				final DefectResolutionProvider resolutionProvider =
 					new DefectResolutionProvider(featureModelFormula.getFeatureModel(), fmManager, analyzer, this);
 				final String affectedElementString = splitMessage[1];
 
-				System.out.println("AFFECTED ELEMENT: " + affectedElementString + " ORIGINAL: " + originalDefectName);
-
-				// if feature model not void or the root is the affected feature
+				// if the feature model is not void or the root is the affected feature
 				if (!analyzer.getFeatureModelProperties().hasStatus(FeatureModelStatus.VOID)
 					|| affectedElementString.equals(featureModelFormula.getFeatureModel().getStructure().getRoot().getFeature().getName())) {
 
 					final Set<IMarkerResolution> offeredResolutions = new HashSet<>();
 
-					// if marker type is dead feature and feature is contained in the model and actually dead or the affected feature is root
+					// if marker type is dead feature and feature is contained in the model and actually dead, or the affected feature is root
 					if (splitMessage[0].startsWith(IFeatureProject.MARKER_DEAD)
 						&& (analyzer.getDeadFeatures(null).contains(featureModelFormula.getFeatureModel().getFeature(affectedElementString))
 							|| (affectedElementString.equals(featureModelFormula.getFeatureModel().getStructure().getRoot().getFeature().getName())
@@ -107,8 +104,6 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 						final IFeature affectedFeature = featureModelFormula.getFeatureModel().getFeature(affectedElementString);
 						originalDefectName = affectedFeature.getName();
 						encounteredFeatures = new HashMap<>();
-						System.out.println("DF?: " + affectedElementString);
-						System.out.println("DF: " + analyzer.getDeadFeatureExplanation(affectedFeature));
 
 						if (affectedFeature != null) {
 
@@ -121,7 +116,6 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 							final IFeature affectedFeature = featureModelFormula.getFeatureModel().getFeature(affectedElementString);
 							originalDefectName = affectedFeature.getName();
 							encounteredFeatures = new HashMap<>();
-							System.out.println("FO: " + analyzer.getFalseOptionalFeatureExplanation(affectedFeature));
 
 							if (affectedFeature != null) {
 
@@ -130,18 +124,13 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 
 						} else if (splitMessage[0].startsWith(IFeatureProject.MARKER_REDUNDANCY) && (analyzer.getRedundantConstraints(null).stream()
 								.map(x -> x.getDisplayName()).filter(y -> y.equals(affectedElementString)).toList().size() > 0)) {
-									System.out.println("REDUNDANT: " + analyzer.getRedundantConstraintExplanation(featureModelFormula.getFeatureModel()
-											.getConstraints().stream().filter(x -> x.getDisplayName().equals(affectedElementString)).toList().get(0)));
 
 									final List<IConstraint> affectedConstraint = featureModelFormula.getFeatureModel().getConstraints().stream()
 											.filter(x -> x.getDisplayName().equals(affectedElementString)).toList();
-									System.out.println("AC: " + affectedConstraint);
+
 									if (affectedConstraint.size() > 0) {
 
 										return getRedundancyResolutions(resolutionProvider, offeredResolutions, affectedConstraint.get(0));
-									} else {
-										offeredResolutions.add(new ResolutionDeleteConstraint(affectedConstraint.get(0).getNode(), fmManager));
-										System.out.println("NO REASON CONSTRAINT");
 									}
 									return new IMarkerResolution[] {};
 
@@ -156,33 +145,27 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 								}
 							}
 				} else {
-					System.out.println("VOID " + affectedElementString);
 
 					// When the feature-model is void, always return fixes for the dead root
-
 					final Set<IMarkerResolution> offeredResolutions = new HashSet<>();
-
 					final IFeature root = featureModelFormula.getFeatureModel().getStructure().getRoot().getFeature();
-
 					getDeadFeatureResolutions(resolutionProvider, offeredResolutions, root);
-
-					System.out.println("   GOT: " + offeredResolutions);
-
 					return offeredResolutions.toArray(new IMarkerResolution[offeredResolutions.size()]);
-
 				}
 			}
 		}
-		System.out.println("NONE");
+
 		return new IMarkerResolution[0];
 
 	}
 
 	/**
-	 * @param resolutionProvider
-	 * @param offeredResolutions
-	 * @param affectedConstraint
-	 * @return
+	 * This method is responsible of generating and returning of a set of resolutions for a redundant constraint.
+	 *
+	 * @param resolutionProvider The resolution provider which offers the required check-methods.
+	 * @param offeredResolutions The set of offered resolutions.
+	 * @param affectedConstraint The redundant constraint.
+	 * @return The set of offered resolutions.
 	 */
 	IMarkerResolution[] getRedundancyResolutions(final DefectResolutionProvider resolutionProvider, final Set<IMarkerResolution> offeredResolutions,
 			final IConstraint affectedConstraint) {
@@ -192,7 +175,7 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 		final Reason<?> reason = ((Reason<?>) reasons.toArray()[0]);
 
 		if ((reasons.size() == 1) && reason.toNode().getContainedFeatures().equals(affectedConstraint.getNode().getContainedFeatures())) {
-			System.out.println("REDUNDANCY ONE REASON EQUAL FEATURES");
+
 			// Same contained features + same satisfying assignments -> equal
 			if (satisfyingAssignments.equals(reason.toNode().getSatisfyingAssignments())) {
 				offeredResolutions.add(new ResolutionDeleteConstraint(affectedConstraint.getNode(), fmManager));
@@ -211,12 +194,12 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 			// if all clauses from the constraint marked as redundant (as CNF) are contained in the reason-constraint (as CNF)
 			if (resolutionProvider.checkClausesContained(affectedConstraint.getNode(), reason.toNode(), offeredResolutions, false,
 					resolutionProvider.isReasonConstraint(reason))) {
-				System.out.println("DEFECT IS IN REASON");
+
 				return offeredResolutions.toArray(new IMarkerResolution[offeredResolutions.size()]);
 
 			} else if (resolutionProvider.checkClausesContained(reason.toNode(), affectedConstraint.getNode(), offeredResolutions,
 					resolutionProvider.isReasonConstraint(reason), false)) {
-						System.out.println("REASON IS IN DEFECT");
+
 						return offeredResolutions.toArray(new IMarkerResolution[offeredResolutions.size()]);
 
 					} else {
@@ -225,9 +208,8 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 					}
 
 		} else {
-			System.out.println("ELSE: reasons size: " + reasons.size());
 
-			resolutionProvider.checkMultipleRedunanycReasons(affectedConstraint, reasons, offeredResolutions);
+			resolutionProvider.checkMultipleRedundanycReasons(affectedConstraint, reasons, offeredResolutions);
 
 		}
 
@@ -235,16 +217,15 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 	}
 
 	/**
-	 * @param marker
-	 * @param resolutionProvider
-	 * @param affectedElementString
-	 * @param offeredResolutions
-	 * @param affectedFeature
-	 * @return
+	 * This method is responsible of generating and returning of a set of resolutions for a false-optional feature.
+	 *
+	 * @param resolutionProvider The resolution provider which offers the required check-methods.
+	 * @param offeredResolutions The set of offered resolutions.
+	 * @param affectedFeature The false-optional feature.
+	 * @return The set of offered resolutions.
 	 */
 	IMarkerResolution[] getFalseOptionalResolutions(final DefectResolutionProvider resolutionProvider, final Set<IMarkerResolution> offeredResolutions,
 			final IFeature affectedFeature) {
-		System.out.println("FO resolution for " + affectedFeature.getName());
 
 		if (encounteredFeatures.get(affectedFeature.getName()) != null) {
 			return new IMarkerResolution[0];
@@ -253,16 +234,12 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 		final Set<Reason<?>> reasons = analyzer.getFalseOptionalFeatureExplanation(affectedFeature).getReasons();
 		final Set<String> involvedFeatures = determineInvolvedFeatures(reasons);
 
-		System.out.println(affectedFeature.getName() + " is original " + originalDefectName);
-
 		// only add fixes if the currently regarded feature is the original defect to be fixed or the first false-optional without
 		// another false-optional possibly being responsible for it
 
 		if (!resolutionProvider.checkForImplyingFalseOptionals(reasons, offeredResolutions, affectedFeature, getFeaturePrefix(affectedFeature),
 				involvedFeatures)
 			|| originalDefectName.equals(affectedFeature.getName())) {
-
-			System.out.println(affectedFeature + " get fixes");
 
 			// All mandatory features, where the fact that they are mandatory is a reason
 			final List<IFeature> mandatoryReasons = new ArrayList<IFeature>();
@@ -278,13 +255,14 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 				if (!f.getName().equals(featureModelFormula.getFeatureModel().getStructure().getRoot().getFeature().getName())) {
 					offeredResolutions.add(new ResolutionMakeOptional(fmManager, f, getFeaturePrefix(affectedFeature)));
 					resolutionProvider.checkImplicationConstraintForFalseOptional(reasons, offeredResolutions, affectedFeature, f,
-							getFeaturePrefix(affectedFeature));
+							getFeaturePrefix(affectedFeature), affectedFeature.getName().equals(originalDefectName));
+
 				}
 			}
 
 			// Situations, where enough other alternatives are excluded (dead) to make the affected feature false-optional
 			if (affectedFeature.getStructure().getParent().isAlternative() || affectedFeature.getStructure().getParent().isOr()) {
-				resolutionProvider.checkAlternativeExclusion(reasons, offeredResolutions, affectedFeature, getFeaturePrefix(affectedFeature), "POSTFIX");
+				resolutionProvider.checkAlternativeExclusion(reasons, offeredResolutions, affectedFeature, getFeaturePrefix(affectedFeature));
 			}
 
 		}
@@ -292,16 +270,15 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 	}
 
 	/**
-	 * @param marker
-	 * @param resolutionProvider
-	 * @param affectedElementString
-	 * @param offeredResolutions
-	 * @param affectedFeature
-	 * @return
+	 * This method is responsible of generating and returning of a set of resolutions for a dead feature.
+	 *
+	 * @param resolutionProvider The resolution provider which offers the required check-methods.
+	 * @param offeredResolutions The set of offered resolutions.
+	 * @param affectedFeature The dead feature.
+	 * @return The set of offered resolutions.
 	 */
 	IMarkerResolution[] getDeadFeatureResolutions(final DefectResolutionProvider resolutionProvider, final Set<IMarkerResolution> offeredResolutions,
 			final IFeature affectedFeature) {
-		System.out.println("BEGIN " + affectedFeature.getName() + ": " + offeredResolutions);
 
 		if (encounteredFeatures.get(affectedFeature.getName()) != null) {
 			return new IMarkerResolution[0];
@@ -311,20 +288,16 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 		final Set<Reason<?>> reasons = analyzer.getDeadFeatureExplanation(affectedFeature).getReasons();
 		final Set<String> involvedFeatures = determineInvolvedFeatures(reasons);
 
-//		System.out.println(affectedFeature.getName() + "  Has no implied dead? "
-//			+ !resolutionProvider.checkImpliedDeadFeatures(reasons, affectedFeature, offeredResolutions, getFeaturePrefix(affectedFeature), involvedFeatures));
-//		System.out.println(" Is origin? " + originalDefectName.equals(affectedFeature.getName()));
 		// Only return resolutions, if the feature is either the first or the last in a chain of implications of dead features
-
 		if (!resolutionProvider.checkImpliedDeadFeatures(reasons, offeredResolutions, affectedFeature, getFeaturePrefix(affectedFeature), involvedFeatures)
 			|| originalDefectName.equals(affectedFeature.getName())) {
 
 			// check, if there exists a constraint -f or equivalent to -f for the feature ( -> intentionally dead?)
 			final Node notFeature = new Not(affectedFeature.getName());
-
 			for (final Reason<?> r : reasons) {
+
 				if (r.toNode().equals(notFeature)) {
-					System.out.println("END DEACTIVATED " + affectedFeature.getName() + " with res: " + offeredResolutions);
+
 					offeredResolutions.add(new ResolutionDeleteConstraint(notFeature, fmManager, getFeaturePrefix(affectedFeature)));
 					return offeredResolutions.toArray(new IMarkerResolution[offeredResolutions.size()]);
 				}
@@ -344,7 +317,6 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 						offeredResolutions.add(new ResolutionCreateConstraint(new Not(affectedFeature), fmManager));
 					}
 				}
-
 			}
 
 			// Add delete feature action if not root
@@ -364,34 +336,55 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 
 			// All exclusions, where a mandatory feature excludes the affected feature
 			for (final String f : involvedFeatures) {
-				System.out.println("CHECK EXCLUSION FOR " + affectedFeature.getName());
 				resolutionProvider.checkExclusion(reasons, offeredResolutions, affectedFeature.getName(), f, getFeaturePrefix(affectedFeature));
 			}
 
 			// checks if the affected feature is implying its own exclusion
 			resolutionProvider.checkImpliesOwnExclusion(reasons, offeredResolutions, affectedFeature, getFeaturePrefix(affectedFeature));
 
-			System.out.println("END " + affectedFeature.getName() + " with res: " + offeredResolutions);
+			resolutionProvider.checkParentExclusion(reasons, offeredResolutions, affectedFeature.getName(), involvedFeatures,
+					getFeaturePrefix(affectedFeature));
+
 			return offeredResolutions.toArray(new IMarkerResolution[offeredResolutions.size()]);
 		}
-		System.out.println("END NONE" + affectedFeature.getName() + " with res: " + offeredResolutions);
 		return offeredResolutions.toArray(new IMarkerResolution[offeredResolutions.size()]);
 	}
 
 	/**
-	 * @param affectedFeature
-	 * @return
+	 *
+	 * This method returns the prefix, that is added to the label of the {@code IMarkerResolutions}, that are added to the set of resolutions. This is used to
+	 * indicate, that the respective fix is used to resolve another feature, that may cause the original defect.
+	 *
+	 * @param currentFeature The feature, for which the prefix is to be returned.
+	 * @return The prefix to be added to the label of the resolution.
 	 */
-	private String getFeaturePrefix(final IFeature affectedFeature) {
-		return (affectedFeature.getName().equals(featureModelFormula.getFeatureModel().getStructure().getRoot().getFeature().getName()) ? "[Root] "
-			: originalDefectName.equals(affectedFeature.getName()) ? "" : "[Possible cause ''" + affectedFeature.getName() + "''] ");
+	private String getFeaturePrefix(final IFeature currentFeature) {
+		return (currentFeature.getName().equals(featureModelFormula.getFeatureModel().getStructure().getRoot().getFeature().getName()) ? "[Root] "
+			: originalDefectName.equals(currentFeature.getName()) ? "" : "[Possible cause ''" + currentFeature.getName() + "''] ");
 	}
 
+	/**
+	 * Determines all features, that are o´contained in a set of reasons.
+	 *
+	 * @param reasons The set of reasons.
+	 * @return The set of features, that are contained.
+	 */
 	private Set<String> determineInvolvedFeatures(Set<Reason<?>> reasons) {
 		final Set<String> containedFeatures = new HashSet<>();
 		for (final Reason<?> r : reasons) {
 			containedFeatures.addAll(r.toNode().getContainedFeatures());
 		}
 		return containedFeatures;
+	}
+
+	/**
+	 *
+	 * Sets the name for the original defect. This is used to determine, if the prefix added in {@link DefectQuickFixHandler#getFeaturePrefix(IFeature)} is
+	 * empty or not.
+	 *
+	 * @param originalDefectName the originalDefectName to set
+	 */
+	public void setOriginalDefectName(String originalDefectName) {
+		this.originalDefectName = originalDefectName;
 	}
 }
