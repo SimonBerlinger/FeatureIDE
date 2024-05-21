@@ -59,10 +59,11 @@ public class AbstractResolutionTest {
 		switch (defectType) {
 		case DEAD:
 			reasons = analyzer.getDeadFeatureExplanation(featureModel.getFeature(defectFeatureName)).getReasons();
+			System.out.println("Reasons: " + reasons.size());
 			break;
 		case FALSE_OPTIONAL:
 			reasons = analyzer.getFalseOptionalFeatureExplanation(featureModel.getFeature(defectFeatureName)).getReasons();
-			System.out.println("FO: " + analyzer.getFalseOptionalFeatureExplanation(featureModel.getFeature(defectFeatureName)));
+			System.out.println("Reasons: " + reasons.size());
 			break;
 		default:
 			return;
@@ -82,16 +83,13 @@ public class AbstractResolutionTest {
 		analyzer.analyzeFeatureModel(null);
 
 		reasons = analyzer.getRedundantConstraintExplanation(getConstraintForNode(constraintNode)).getReasons();
-
+		System.out.println("Reasons: " + reasons.size());
 		resolutions = new HashSet<>();
 		dqh = new DefectQuickFixHandler();
 		dqh.analyzer = analyzer;
 		dqh.featureModelFormula = fmManager.getPersistentFormula();
 	}
 
-	/**
-	 * @param filename
-	 */
 	protected void loadFeatureModelIfNotPresent(String filename) {
 		if ((fmManager == null) || !fmManager.getPath().endsWith(filename)) {
 			fmManager = Commons.loadTestFeatureModelFromFile(filename);
@@ -108,7 +106,7 @@ public class AbstractResolutionTest {
 			new DefectResolutionProvider(fmManager.getPersistentFormula().getFeatureModel(), fmManager, fmManager.getPersistentFormula().getAnalyzer(), dqh);
 		dqh.setOriginalDefectName(featureName);
 		dqh.getDeadFeatureResolutions(resolutionProvider, resolutions, featureModel.getFeature(featureName));
-		System.out.println("    END - Duration: " + ((System.nanoTime() - t0) / 1000000.0) + " ms\n" + resolutions + "\n");
+		System.out.println("    END - Duration: " + Math.round((System.nanoTime() - t0) / 1000000.0) + " ms");
 
 	}
 
@@ -118,7 +116,7 @@ public class AbstractResolutionTest {
 			new DefectResolutionProvider(fmManager.getPersistentFormula().getFeatureModel(), fmManager, fmManager.getPersistentFormula().getAnalyzer(), dqh);
 		dqh.setOriginalDefectName(featureName);
 		dqh.getFalseOptionalResolutions(resolutionProvider, resolutions, featureModel.getFeature(featureName));
-		System.out.println("    END - Duration: " + ((System.nanoTime() - t0) / 1000000.0) + " ms\n " + resolutions + "\n");
+		System.out.println("    END - Duration: " + Math.round((System.nanoTime() - t0) / 1000000.0) + " ms");
 
 	}
 
@@ -128,7 +126,7 @@ public class AbstractResolutionTest {
 			new DefectResolutionProvider(fmManager.getPersistentFormula().getFeatureModel(), fmManager, fmManager.getPersistentFormula().getAnalyzer(), dqh);
 		dqh.getRedundancyResolutions(resolutionProvider, resolutions,
 				(IConstraint) featureModel.getConstraints().stream().filter(x -> x.getNode().equals(constraintNode)).toList().get(0));
-		System.out.println("    END - Duration: " + ((System.nanoTime() - t0) / 1000000.0) + " ms\n" + resolutions + "\n");
+		System.out.println("    END - Duration: " + Math.round((System.nanoTime() - t0) / 1000000.0) + " ms");
 
 	}
 

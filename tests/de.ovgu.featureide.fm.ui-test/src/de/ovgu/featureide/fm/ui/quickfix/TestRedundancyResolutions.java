@@ -73,8 +73,4 @@ public class TestRedundancyResolutions extends AbstractResolutionTest {
 
 	}
 
-	@Test
-	public void testConstraintOverlap() {
-
-	}
 }

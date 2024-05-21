@@ -201,14 +201,14 @@ public class DefectResolutionProvider {
 	 *        causing another defect)
 	 */
 	void checkImplicationConstraintForFalseOptional(Set<Reason<?>> reasons, Set<IMarkerResolution> offeredResolutions, IFeature possiblyImplied,
-			IFeature possibleReason, String featurePrefix, boolean isOriginalDefect) {
+			IFeature possibleReason, String featurePrefix) {
 		for (final Reason<?> reason : reasons) {
 			if (testForImplication(List.of(possibleReason.getName()), possiblyImplied.getName(), reason.toNode()).size() > 0) {
 				offeredResolutions.add(new ResolutionDeleteConstraint(reason.toNode(), fmManager, featurePrefix));
-				if (isOriginalDefect) {
-					offeredResolutions.add(new ResolutionMakeMandatory(fmManager, possiblyImplied.getName(),
-							Features.getCommonAncestor(List.of(possiblyImplied, possibleReason)).getName(), featurePrefix));
-				}
+
+				offeredResolutions.add(new ResolutionMakeMandatory(fmManager, possiblyImplied.getName(),
+						Features.getCommonAncestor(List.of(possiblyImplied, possibleReason)).getName(), featurePrefix));
+
 				IConstraint editConstraint = null;
 
 				for (final IConstraint c : featureModel.getConstraints()) {
@@ -241,7 +241,6 @@ public class DefectResolutionProvider {
 		for (final String featureName : falseOptionals) {
 
 			quickFixHandler.getFalseOptionalResolutions(this, offeredResolutions, featureModel.getFeature(featureName));
-
 		}
 	}
 
@@ -698,7 +697,7 @@ public class DefectResolutionProvider {
 				final Node newConstraint = new And();
 				newConstraint.setChildren(newChildren);
 
-				offeredResolutions.add(new ResolutionSetConstraint(fmManager, constraint, newConstraint, ""));
+				offeredResolutions.add(new ResolutionChangeConstraint(fmManager, constraint, newConstraint, ""));
 			}
 
 		} else if (!isConstraintRelation) {
@@ -716,7 +715,7 @@ public class DefectResolutionProvider {
 			final Node newConstraint = new And();
 			newConstraint.setChildren(newChildren);
 
-			offeredResolutions.add(new ResolutionSetConstraint(fmManager, constraint, newConstraint, ""));
+			offeredResolutions.add(new ResolutionChangeConstraint(fmManager, constraint, newConstraint, ""));
 
 		}
 

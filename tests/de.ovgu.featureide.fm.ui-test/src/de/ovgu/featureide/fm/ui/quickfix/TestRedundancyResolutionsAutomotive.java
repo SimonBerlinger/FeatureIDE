@@ -23,6 +23,7 @@ package de.ovgu.featureide.fm.ui.quickfix;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
+import org.prop4j.And;
 import org.prop4j.Implies;
 import org.prop4j.Literal;
 import org.prop4j.Node;
@@ -37,8 +38,8 @@ import org.prop4j.Or;
 public class TestRedundancyResolutionsAutomotive extends AbstractResolutionTest {
 
 	@Test
-	public void testConstraintsEquivalentAutomotive() {
-		final Node redundantNode = new Or(new Not("N_100130__F_100200"), new Literal("N_100130__F_100217"));
+	public void testConstraintsEquivalentAutomotiveA() {
+		final Node redundantNode = new Or(new Not("RC_EQUIVALENT_IMPLYING"), new Literal("RC_EQUIVALENT_IMPLIED"));
 
 		analyzeFeatureModelRedundancy("automotive01_defects.xml", redundantNode, "testConstraintsEquivalentAutomotive");
 
@@ -46,12 +47,12 @@ public class TestRedundancyResolutionsAutomotive extends AbstractResolutionTest 
 
 		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(redundantNode, fmManager)));
 		assertTrue(resolutions
-				.contains(new ResolutionDeleteConstraint(new Implies(new Literal("N_100130__F_100200"), new Literal("N_100130__F_100217")), fmManager)));
+				.contains(new ResolutionDeleteConstraint(new Implies(new Literal("RC_EQUIVALENT_IMPLYING"), new Literal("RC_EQUIVALENT_IMPLIED")), fmManager)));
 	}
 
 	@Test
-	public void testConstraintContainedAutomotive() {
-		final Node redundantNode = new Literal("N_100300__F_100347");
+	public void testConstraintContainedAutomotiveA() {
+		final Node redundantNode = new Literal("RC_CONTAINED_CONTAINED");
 
 		analyzeFeatureModelRedundancy("automotive01_defects.xml", redundantNode, "testConstraintContainedAutomotive");
 
@@ -61,8 +62,8 @@ public class TestRedundancyResolutionsAutomotive extends AbstractResolutionTest 
 	}
 
 	@Test
-	public void testConstraintContainedMultiAutomotive() {
-		final Node redundantNode = new Implies(new Literal("N_100300__F_100346"), new Literal("N_100300__F_100350"));
+	public void testConstraintContainedMultiAutomotiveA() {
+		final Node redundantNode = new Implies(new Literal("RC_CONTAINED_MULTI_IMPLYING"), new Literal("RC_CONTAINED_MULTI_IMPLIED-PARENT"));
 
 		analyzeFeatureModelRedundancy("automotive01_defects.xml", redundantNode, "testConstraintContainedMultiAutomotive");
 
@@ -73,7 +74,55 @@ public class TestRedundancyResolutionsAutomotive extends AbstractResolutionTest 
 	}
 
 	@Test
-	public void testConstraintOverlapAutomotive() {
+	public void testConstraintsEquivalentAutomotiveB() {
+		final Node redundantNode = new Implies(
+				new And(new Literal("RC_EQUIVALENT_1_B"),
+						new And(new Literal("RC_EQUIVALENT_2_B"),
+								new And(new Literal("RC_EQUIVALENT_3_B"), new And(new Literal("RC_EQUIVALENT_4_B"), new Literal("RC_EQUIVALENT_5_B"))))),
+				new And(new Literal("RC_EQUIVALENT_6_B"), new And(new Literal("RC_EQUIVALENT_7_B"),
+						new And(new Literal("RC_EQUIVALENT_8_B"), new And(new Literal("RC_EQUIVALENT_9_B"), new Literal("RC_EQUIVALENT_10_B"))))));
 
+		final Node otherNode = new Not(new And(
+				new And(new Literal("RC_EQUIVALENT_1_B"),
+						new And(new Literal("RC_EQUIVALENT_2_B"),
+								new And(new Literal("RC_EQUIVALENT_3_B"), new And(new Literal("RC_EQUIVALENT_4_B"), new Literal("RC_EQUIVALENT_5_B"))))),
+				new Not(new And(new Literal("RC_EQUIVALENT_6_B"), new And(new Literal("RC_EQUIVALENT_7_B"),
+						new And(new Literal("RC_EQUIVALENT_8_B"), new And(new Literal("RC_EQUIVALENT_9_B"), new Literal("RC_EQUIVALENT_10_B"))))))));
+
+		analyzeFeatureModelRedundancy("automotive01_defects.xml", redundantNode, "testConstraintsEquivalentAutomotiveB");
+		getRedundancyResolutions(redundantNode);
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(redundantNode, fmManager)));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(otherNode, fmManager)));
+	}
+
+	@Test
+	public void testConstraintContainedAutomotiveB() {
+		final Node redundantNode = new Or(new Literal("RC_CONTAINED_1_B"), new Implies(new Literal("RC_CONTAINED_2_B"),
+				new Implies(new Literal("RC_CONTAINED_3_B"), new And(new Literal("RC_CONTAINED_4_B"), new Literal("RC_CONTAINED_5_B")))));
+
+		analyzeFeatureModelRedundancy("automotive01_defects.xml", redundantNode, "testConstraintContainedAutomotiveB");
+
+		getRedundancyResolutions(redundantNode);
+
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(redundantNode, fmManager)));
+	}
+
+	@Test
+	public void testConstraintContainedMultiAutomotiveB() {
+		final Node redundantNode = new Implies(
+				new Or(new Literal("RC_CONTAINED_MULTI_IMPLYING_1_B"),
+						new Or(new Literal("RC_CONTAINED_MULTI_IMPLYING_2_B"),
+								new Or(new Literal("RC_CONTAINED_MULTI_IMPLYING_3_B"),
+										new Or(new Literal("RC_CONTAINED_MULTI_IMPLYING_4_B"), new Literal("RC_CONTAINED_MULTI_IMPLYING_5_B"))))),
+				new Or(new Literal("RC_CONTAINED_MULTI_IMPLIED2_1_B"),
+						new Or(new Literal("RC_CONTAINED_MULTI_IMPLIED2_2_B"), new Or(new Literal("RC_CONTAINED_MULTI_IMPLIED2_3_B"),
+								new Or(new Literal("RC_CONTAINED_MULTI_IMPLIED2_4_B"), new Literal("RC_CONTAINED_MULTI_IMPLIED2_5_B"))))));
+
+		analyzeFeatureModelRedundancy("automotive01_defects.xml", redundantNode, "testConstraintContainedMultiAutomotiveB");
+
+		getRedundancyResolutions(redundantNode);
+
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(redundantNode, fmManager)));
+		assertTrue(resolutions.contains(new ResolutionEditConstraint(getConstraintForNode(redundantNode), fmManager, "")));
 	}
 }

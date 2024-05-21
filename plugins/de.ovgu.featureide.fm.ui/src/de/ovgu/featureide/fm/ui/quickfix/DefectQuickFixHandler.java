@@ -169,6 +169,7 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 	 */
 	IMarkerResolution[] getRedundancyResolutions(final DefectResolutionProvider resolutionProvider, final Set<IMarkerResolution> offeredResolutions,
 			final IConstraint affectedConstraint) {
+
 		final Set<Reason<?>> reasons = analyzer.getRedundantConstraintExplanation(affectedConstraint).getReasons();
 
 		final Set<Map<Object, Boolean>> satisfyingAssignments = affectedConstraint.getNode().getSatisfyingAssignments();
@@ -236,7 +237,6 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 
 		// only add fixes if the currently regarded feature is the original defect to be fixed or the first false-optional without
 		// another false-optional possibly being responsible for it
-
 		if (!resolutionProvider.checkForImplyingFalseOptionals(reasons, offeredResolutions, affectedFeature, getFeaturePrefix(affectedFeature),
 				involvedFeatures)
 			|| originalDefectName.equals(affectedFeature.getName())) {
@@ -255,7 +255,7 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 				if (!f.getName().equals(featureModelFormula.getFeatureModel().getStructure().getRoot().getFeature().getName())) {
 					offeredResolutions.add(new ResolutionMakeOptional(fmManager, f, getFeaturePrefix(affectedFeature)));
 					resolutionProvider.checkImplicationConstraintForFalseOptional(reasons, offeredResolutions, affectedFeature, f,
-							getFeaturePrefix(affectedFeature), affectedFeature.getName().equals(originalDefectName));
+							getFeaturePrefix(affectedFeature));
 
 				}
 			}
@@ -279,7 +279,6 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 	 */
 	IMarkerResolution[] getDeadFeatureResolutions(final DefectResolutionProvider resolutionProvider, final Set<IMarkerResolution> offeredResolutions,
 			final IFeature affectedFeature) {
-
 		if (encounteredFeatures.get(affectedFeature.getName()) != null) {
 			return new IMarkerResolution[0];
 		}
@@ -306,45 +305,41 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 				if (resolutionProvider.isExcluding(affectedFeature.getName(),
 						featureModelFormula.getFeatureModel().getStructure().getRoot().getFeature().getName(), r.toNode())
 					|| resolutionProvider.isExcluding(affectedFeature.getName(), affectedFeature.getName(), r.toNode())) {
-					offeredResolutions.add(new ResolutionSetConstraint(fmManager, r.toNode(), notFeature, ""));
+					offeredResolutions.add(new ResolutionChangeConstraint(fmManager, r.toNode(), notFeature, ""));
 				}
 
 				// check if feature is excluded by deactivated feature
 				for (final String f : r.toNode().getContainedFeatures()) {
-					if (r.toNode().getContainedFeatures().contains(affectedFeature.getName())
-						&& !resolutionProvider.canBeSelectedInConstraint(affectedFeature.getName(), Node.replaceLiterals(r.toNode(), Arrays.asList(f), true))
-						&& featureModelFormula.getFeatureModel().getConstraints().stream().map(x -> x.getDisplayName()).toList().contains("-" + f)) {
+					if (reasons.stream().map(x -> x.toNode().toString()).toList().contains("-" + f)
+						&& !resolutionProvider.canBeSelectedInConstraint(affectedFeature.getName(), Node.replaceLiterals(r.toNode(), Arrays.asList(f), true))) {
 						offeredResolutions.add(new ResolutionCreateConstraint(new Not(affectedFeature), fmManager));
 					}
 				}
+
 			}
 
-			// Add delete feature action if not root
-			if (!affectedFeature.equals(featureModelFormula.getFeatureModel().getStructure().getRoot().getFeature())) {
-				offeredResolutions.add(new ResolutionDeleteFeature(affectedFeature.getName(), fmManager, getFeaturePrefix(affectedFeature)));
-			}
+//			// Add delete feature action if not root
+//			if (!affectedFeature.equals(featureModelFormula.getFeatureModel().getStructure().getRoot().getFeature())) {
+//				offeredResolutions.add(new ResolutionDeleteFeature(affectedFeature.getName(), fmManager, getFeaturePrefix(affectedFeature)));
+//			}
 
 			resolutionProvider.checkImpliesMultiAlt(reasons, offeredResolutions, affectedFeature, getFeaturePrefix(affectedFeature));
 
 			resolutionProvider.checkForExcludingFalseOptionals(reasons, offeredResolutions, affectedFeature, getFeaturePrefix(affectedFeature),
 					involvedFeatures);
-
 			// All mandatory features, where the fact that they are mandatory is a reason
 			for (final Reason<?> reason : reasons) {
 				resolutionProvider.checkMandatoryChildReason(reason, offeredResolutions, getFeaturePrefix(affectedFeature));
 			}
-
 			// All exclusions, where a mandatory feature excludes the affected feature
 			for (final String f : involvedFeatures) {
 				resolutionProvider.checkExclusion(reasons, offeredResolutions, affectedFeature.getName(), f, getFeaturePrefix(affectedFeature));
 			}
-
 			// checks if the affected feature is implying its own exclusion
 			resolutionProvider.checkImpliesOwnExclusion(reasons, offeredResolutions, affectedFeature, getFeaturePrefix(affectedFeature));
 
 			resolutionProvider.checkParentExclusion(reasons, offeredResolutions, affectedFeature.getName(), involvedFeatures,
 					getFeaturePrefix(affectedFeature));
-
 			return offeredResolutions.toArray(new IMarkerResolution[offeredResolutions.size()]);
 		}
 		return offeredResolutions.toArray(new IMarkerResolution[offeredResolutions.size()]);

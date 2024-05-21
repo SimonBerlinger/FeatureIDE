@@ -151,9 +151,9 @@ public class TestDeadFeatureResolutions extends AbstractResolutionTest {
 				.contains(new ResolutionEditConstraint(getConstraintForNode(new Implies(new Literal("Hello"), new Literal("Beautiful"))), fmManager, "")));
 		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("Hello"), "")));
 
-		assertFalse(resolutions.contains(new ResolutionMakeMandatory(fmManager, "Beautiful", "Sentence", "")));
 	}
 
+	@Test
 	public void testDeactivatedFeature() {
 		analyzeFeatureModel("dead_deactivated_features.xml", FeatureStatus.DEAD, "Period", "testDeactivatedFeature");
 
@@ -163,22 +163,36 @@ public class TestDeadFeatureResolutions extends AbstractResolutionTest {
 		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(new Not("Period"), fmManager)));
 	}
 
-	public void testConvertToDeactivatedFeature() {
-		analyzeFeatureModel("dead_deactivated_features.xml", FeatureStatus.DEAD, "Hello", "testConvertToDeactivatedFeature");
+	@Test
+	public void testDeactivateExcludeSelf() {
+
+		analyzeFeatureModel("dead_deactivated_features.xml", FeatureStatus.DEAD, "Hello", "testDeactivateExcludeSelf");
 		getDeadFeatureResolutions("Hello");
-		assertTrue(resolutions.contains(new ResolutionCreateConstraint(new Not("Hello"), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionChangeConstraint(fmManager, new Implies(new Literal("Hello"), new Not("Hello")), new Not("Hello"), "")));
+	}
 
-		analyzeFeatureModel("dead_deactivated_features.xml", FeatureStatus.DEAD, "Beautiful", "");
+	@Test
+	public void testDeactivateExcludeRoot() {
+		analyzeFeatureModel("dead_deactivated_features.xml", FeatureStatus.DEAD, "Beautiful", "testDeactivateExcludeRoot");
 		getDeadFeatureResolutions("Beautiful");
-		assertTrue(resolutions.contains(new ResolutionCreateConstraint(new Not("Beautiful"), fmManager)));
+		assertTrue(resolutions
+				.contains(new ResolutionChangeConstraint(fmManager, new Implies(new Literal("Beautiful"), new Not("Sentence")), new Not("Beautiful"), "")));
+	}
 
-		analyzeFeatureModel("dead_deactivated_features.xml", FeatureStatus.DEAD, "Wonderful", "");
+	@Test
+	public void testDeactivateExcludedByRoot() {
+		analyzeFeatureModel("dead_deactivated_features.xml", FeatureStatus.DEAD, "Wonderful", "testDeactivateExcludedByRoot");
 		getDeadFeatureResolutions("Wonderful");
-		assertTrue(resolutions.contains(new ResolutionCreateConstraint(new Not("Wonderful"), fmManager)));
+		assertTrue(resolutions
+				.contains(new ResolutionChangeConstraint(fmManager, new Implies(new Literal("Sentence"), new Not("Wonderful")), new Not("Wonderful"), "")));
+	}
 
-		analyzeFeatureModel("dead_deactivated_features.xml", FeatureStatus.DEAD, "World", "");
+	@Test
+	public void testDeactivateExcludedByDeactivated() {
+		analyzeFeatureModel("dead_deactivated_features.xml", FeatureStatus.DEAD, "World", "testDeactivateExcludedByDeactivated");
 		getDeadFeatureResolutions("World");
-		assertTrue(resolutions.contains(new ResolutionCreateConstraint(new Not("World"), fmManager)));
+		assertTrue(resolutions.stream()
+				.anyMatch(x -> (x instanceof ResolutionCreateConstraint) && ((ResolutionCreateConstraint) x).toCreateNode.toString().equals("-World")));
 	}
 
 }

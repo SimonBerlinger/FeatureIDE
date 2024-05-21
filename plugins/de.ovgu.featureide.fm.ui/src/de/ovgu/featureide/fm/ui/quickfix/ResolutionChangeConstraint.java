@@ -34,12 +34,12 @@ import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
  *
  * @author Simon Berlinger
  */
-public class ResolutionSetConstraint extends AbstractResolution {
+public class ResolutionChangeConstraint extends AbstractResolution {
 
 	private final Node originalNode;
 	private final Node newNode;
 
-	public ResolutionSetConstraint(FeatureModelManager fmManager, Node originalNode, Node newNode, String prefix) {
+	public ResolutionChangeConstraint(FeatureModelManager fmManager, Node originalNode, Node newNode, String prefix) {
 		super(fmManager);
 		this.originalNode = originalNode;
 		this.newNode = newNode;
@@ -86,7 +86,7 @@ public class ResolutionSetConstraint extends AbstractResolution {
 		if (getClass() != obj.getClass()) {
 			return false;
 		}
-		final ResolutionSetConstraint other = (ResolutionSetConstraint) obj;
+		final ResolutionChangeConstraint other = (ResolutionChangeConstraint) obj;
 		return Objects.equals(newNode, other.newNode) && Objects.equals(originalNode, other.originalNode);
 	}
 

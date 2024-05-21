@@ -38,261 +38,321 @@ import de.ovgu.featureide.fm.core.analysis.FeatureProperties.FeatureStatus;
  */
 public class TestDeadFeatureResolutionsAutomotive extends AbstractResolutionTest {
 
+	// Feature names: The first part indicates the type of defect, the last part indicates the role of the feature and the middle part is the
+	// situation of the defect. For example: DF_EXCL_OPT_EXCLUDING is the excluding feature for a dead feature in the situation where an optional is excluded.
+	// For the second set of tests, '_B' is appended
+
 	@Test
 	public void testExcludedOptionalDeadAutomotiveA() {
 
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "N_100002__F_100004", "testExcludedOptionalDeadAutomotiveA");
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_EXCL_OPT_DEAD", "testExcludedOptionalDeadAutomotiveA");
 
-		getDeadFeatureResolutions("N_100002__F_100004");
+		getDeadFeatureResolutions("DF_EXCL_OPT_DEAD");
 
-		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("N_100002__F_100106"), null)));
+		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("DF_EXCL_OPT_EXCLUDING"), null)));
 		assertTrue(resolutions.contains(
-				new ResolutionDeleteConstraint(new Implies(new Literal("N_100002__F_100106"), new Not(new Literal("N_100002__F_100004"))), fmManager)));
+				new ResolutionDeleteConstraint(new Implies(new Literal("DF_EXCL_OPT_EXCLUDING"), new Not(new Literal("DF_EXCL_OPT_DEAD"))), fmManager)));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_100002__F_100106"), new Not(new Literal("N_100002__F_100004")))), fmManager, "")));
+				getConstraintForNode(new Implies(new Literal("DF_EXCL_OPT_EXCLUDING"), new Not(new Literal("DF_EXCL_OPT_DEAD")))), fmManager, "")));
 	}
 
 	@Test
 	public void testAlternativeImplicationDeadAutomotiveA() {
 
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "N_100002__F_100108", "testAlternativeImplicationDeadAutomotiveA");
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_ALT_IMPLICATION_DEAD", "testAlternativeImplicationDeadAutomotiveA");
 
-		getDeadFeatureResolutions("N_100002__F_100108");
+		getDeadFeatureResolutions("DF_ALT_IMPLICATION_DEAD");
 
-		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("N_100002__F_100012"), null)));
-		assertTrue(resolutions
-				.contains(new ResolutionDeleteConstraint(new Implies(new Literal("N_100002__F_100012"), new Literal("N_100002__F_100107")), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("DF_ALT_IMPLICATION_IMPLYING"), null)));
+		assertTrue(resolutions.contains(
+				new ResolutionDeleteConstraint(new Implies(new Literal("DF_ALT_IMPLICATION_IMPLYING"), new Literal("DF_ALT_IMPLICATION_IMPLIED")), fmManager)));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_100002__F_100012"), new Literal("N_100002__F_100107"))), fmManager, "")));
-		assertTrue(resolutions.contains(new ResolutionConvertAlternativeToOr(fmManager, featureModel.getFeature("N_100002__F_100106"), "")));
+				getConstraintForNode(new Implies(new Literal("DF_ALT_IMPLICATION_IMPLYING"), new Literal("DF_ALT_IMPLICATION_IMPLIED"))), fmManager, "")));
+		assertTrue(resolutions.contains(new ResolutionConvertAlternativeToOr(fmManager, featureModel.getFeature("DF_EXCL_OPT_EXCLUDING"), "")));
 	}
 
 	@Test
-	public void testAltImplyAltAutomotive() {
+	public void testAltImplyAltAutomotiveA() {
 
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "N_100002__F_100114", "testAltImplyAltAutomotiveA");
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_ALT_IMPLY_ALT_DEAD", "testAltImplyAltAutomotiveA");
 
-		getDeadFeatureResolutions("N_100002__F_100114");
+		getDeadFeatureResolutions("DF_ALT_IMPLY_ALT_DEAD");
 
-		assertTrue(resolutions
-				.contains(new ResolutionDeleteConstraint(new Implies(new Literal("N_100002__F_100114"), new Literal("N_100002__F_100129")), fmManager)));
-		assertTrue(resolutions.contains(new ResolutionConvertAlternativeToOr(fmManager, featureModel.getFeature("N_100002__F_100113"), "")));
+		assertTrue(resolutions.contains(
+				new ResolutionDeleteConstraint(new Implies(new Literal("DF_ALT_IMPLY_ALT_DEAD"), new Literal("DF_ALT_IMPLY_ALT_IMPLIED")), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionConvertAlternativeToOr(fmManager, featureModel.getFeature("DF_ALT_IMPLY_ALT_PARENT"), "")));
 
 		// Exclusion results from the alternative group and cannot be deleted
-		assertFalse(
-				resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("N_100002__F_100129"), new Not("N_100002__F_100114")), fmManager)));
+		assertFalse(resolutions
+				.contains(new ResolutionDeleteConstraint(new Implies(new Literal("DF_ALT_IMPLY_ALT_IMPLIED"), new Not("DF_ALT_IMPLY_ALT_DEAD")), fmManager)));
 	}
 
 	@Test
-	public void testImplyMultiAltAutomotive() {
+	public void testImplyMultiAltAutomotiveA() {
 
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "N_100002__F_100110", "testImplyMultiAltAutomotiveA");
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_IMPLY_MULTI_ALT_DEAD", "testImplyMultiAltAutomotiveA");
 
-		getDeadFeatureResolutions("N_100002__F_100110");
+		getDeadFeatureResolutions("DF_IMPLY_MULTI_ALT_DEAD");
 
-		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(
-				new Implies(new Literal("N_100002__F_100110"), new And(new Literal("N_100002__F_100108"), new Literal("N_100002__F_100109"))), fmManager)));
-		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(
-						new Implies(new Literal("N_100002__F_100110"), new And(new Literal("N_100002__F_100108"), new Literal("N_100002__F_100109")))),
-				fmManager, "")));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("DF_IMPLY_MULTI_ALT_DEAD"),
+				new And(new Literal("DF_IMPLY_MULTI_ALT_IMPLIED"), new Literal("DF_IMPLY_MULTI_ALT_IMPLIED2"))), fmManager)));
+		assertTrue(
+				resolutions
+						.contains(
+								new ResolutionEditConstraint(
+										getConstraintForNode(new Implies(new Literal("DF_IMPLY_MULTI_ALT_DEAD"),
+												new And(new Literal("DF_IMPLY_MULTI_ALT_IMPLIED"), new Literal("DF_IMPLY_MULTI_ALT_IMPLIED2")))),
+										fmManager, "")));
 
 	}
 
 	@Test
 	public void testSimultaneousImplyExcludeAutomotiveA() {
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "N_100002__F_100073", "testSimultaneousImplyExcludeAutomotiveA");
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_SIMULTANEOUS_IMPLY_EXCL_DEAD", "testSimultaneousImplyExcludeAutomotiveA");
 
-		getDeadFeatureResolutions("N_100002__F_100073");
+		getDeadFeatureResolutions("DF_SIMULTANEOUS_IMPLY_EXCL_DEAD");
 
-		assertTrue(resolutions
-				.contains(new ResolutionDeleteConstraint(new Implies(new Literal("N_100002__F_100073"), new Literal("N_100002__F_100104")), fmManager)));
-		assertTrue(
-				resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("N_100002__F_100104"), new Not("N_100002__F_100073")), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(
+				new Implies(new Literal("DF_SIMULTANEOUS_IMPLY_EXCL_DEAD"), new Literal("DF_SIMULTANEOUS_IMPLY_EXCL_IMPLIED")), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(
+				new Implies(new Literal("DF_SIMULTANEOUS_IMPLY_EXCL_IMPLIED"), new Not("DF_SIMULTANEOUS_IMPLY_EXCL_DEAD")), fmManager)));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_100002__F_100073"), new Literal("N_100002__F_100104"))), fmManager, "")));
+				getConstraintForNode(new Implies(new Literal("DF_SIMULTANEOUS_IMPLY_EXCL_DEAD"), new Literal("DF_SIMULTANEOUS_IMPLY_EXCL_IMPLIED"))), fmManager,
+				"")));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_100002__F_100104"), new Not("N_100002__F_100073"))), fmManager, "")));
+				getConstraintForNode(new Implies(new Literal("DF_SIMULTANEOUS_IMPLY_EXCL_IMPLIED"), new Not("DF_SIMULTANEOUS_IMPLY_EXCL_DEAD"))), fmManager,
+				"")));
 	}
 
 	@Test
 	public void testExcludeParentAutomotiveA() {
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "N_100002__F_100081", "testExcludeParentAutomotiveA");
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_EXCL_PARENT_DEAD", "testExcludeParentAutomotiveA");
 
-		getDeadFeatureResolutions("N_100002__F_100081");
+		getDeadFeatureResolutions("DF_EXCL_PARENT_DEAD");
 
 		assertTrue(resolutions
-				.contains(new ResolutionDeleteConstraint(new Implies(new Literal("N_100002__F_100081"), new Literal("N_100002__F_100087")), fmManager)));
-		assertTrue(
-				resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("N_100002__F_100087"), new Not("N_100002__F_100080")), fmManager)));
+				.contains(new ResolutionDeleteConstraint(new Implies(new Literal("DF_EXCL_PARENT_DEAD"), new Literal("DF_EXCL_PARENT_EXCLUDING")), fmManager)));
+		assertTrue(resolutions
+				.contains(new ResolutionDeleteConstraint(new Implies(new Literal("DF_EXCL_PARENT_EXCLUDING"), new Not("DF_EXCL_PARENT_PARENT")), fmManager)));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_100002__F_100081"), new Literal("N_100002__F_100087"))), fmManager, "")));
+				getConstraintForNode(new Implies(new Literal("DF_EXCL_PARENT_DEAD"), new Literal("DF_EXCL_PARENT_EXCLUDING"))), fmManager, "")));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_100002__F_100087"), new Not("N_100002__F_100080"))), fmManager, "")));
+				getConstraintForNode(new Implies(new Literal("DF_EXCL_PARENT_EXCLUDING"), new Not("DF_EXCL_PARENT_PARENT"))), fmManager, "")));
 
 	}
 
 	@Test
 	public void testDeadFeatureImplicationChainAutomotiveA() {
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "N_104649__F_104756", "testDeadFeatureImplicationChainAutomotiveA");
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_DEAD_IMPLY_CHAIN_DEAD", "testDeadFeatureImplicationChainAutomotiveA");
 
-		getDeadFeatureResolutions("N_104649__F_104756");
+		getDeadFeatureResolutions("DF_DEAD_IMPLY_CHAIN_DEAD");
 
-		assertTrue(resolutions
-				.contains(new ResolutionDeleteConstraint(new Implies(new Literal("N_104649__F_104756"), new Literal("N_104649__F_104750")), fmManager)));
-		assertTrue(
-				resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("N_104700__F_104701"), new Not("N_104649__F_104727")), fmManager)));
+		assertTrue(resolutions.contains(
+				new ResolutionDeleteConstraint(new Implies(new Literal("DF_DEAD_IMPLY_CHAIN_DEAD"), new Literal("DF_DEAD_IMPLY_CHAIN_IMPLIED1")), fmManager)));
+		assertTrue(resolutions.contains(
+				new ResolutionDeleteConstraint(new Implies(new Literal("DF_DEAD_IMPLY_CHAIN_EXCLUDING"), new Not("DF_DEAD_IMPLY_CHAIN_IMPLIED2")), fmManager)));
 
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_104649__F_104756"), new Literal("N_104649__F_104750"))), fmManager, "")));
+				getConstraintForNode(new Implies(new Literal("DF_DEAD_IMPLY_CHAIN_DEAD"), new Literal("DF_DEAD_IMPLY_CHAIN_IMPLIED1"))), fmManager, "")));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_104700__F_104701"), new Not("N_104649__F_104727"))), fmManager, "")));
+				getConstraintForNode(new Implies(new Literal("DF_DEAD_IMPLY_CHAIN_EXCLUDING"), new Not("DF_DEAD_IMPLY_CHAIN_IMPLIED2"))), fmManager, "")));
 
-		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("N_104700__F_104701"), "")));
+		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("DF_DEAD_IMPLY_CHAIN_EXCLUDING"), "")));
 	}
 
 	@Test
 	public void testExcludedByFalseOptionalAutomotiveA() {
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "N_100130__F_100265", "testExcludedByFalseOptionalAutomotiveA");
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_EXCL_BY_FALSE_OPT_DEAD", "testExcludedByFalseOptionalAutomotiveA");
 
-		getDeadFeatureResolutions("N_100130__F_100265");
+		getDeadFeatureResolutions("DF_EXCL_BY_FALSE_OPT_DEAD");
 
-		assertTrue(resolutions
-				.contains(new ResolutionDeleteConstraint(new Implies(new Literal("N_100130__F_100133"), new Literal("N_100130__F_100170")), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(
+				new Implies(new Literal("DF_EXCL_BY_FALSE_OPT_IMPLYING"), new Literal("DF_EXCL_BY_FALSE_OPT_FALSE-OPTIONAL")), fmManager)));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_100130__F_100133"), new Literal("N_100130__F_100170"))), fmManager, "")));
-		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("N_100130__F_100133"), "")));
-
-		assertFalse(resolutions.contains(new ResolutionMakeMandatory(fmManager, "N_100130__F_100170", "N_100130__F_100132", "")));
+				getConstraintForNode(new Implies(new Literal("DF_EXCL_BY_FALSE_OPT_IMPLYING"), new Literal("DF_EXCL_BY_FALSE_OPT_FALSE-OPTIONAL"))), fmManager,
+				"")));
+		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("DF_EXCL_BY_FALSE_OPT_IMPLYING"), "")));
+		assertTrue(resolutions.contains(new ResolutionMakeMandatory(fmManager, "DF_EXCL_BY_FALSE_OPT_FALSE-OPTIONAL", "DF_EXCL_BY_FALSE_OPT_FO-PARENT", "")));
 	}
 
 	@Test
 	public void testExcludedOptionalDeadAutomotiveB() {
 
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "N_100353__F_100392", "testExcludedOptionalDeadAutomotiveB");
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_EXCLUDED_OPTIONAL_DEAD_B", "testExcludedOptionalDeadAutomotiveB");
 
-		getDeadFeatureResolutions("N_100353__F_100392");
+		getDeadFeatureResolutions("DF_EXCLUDED_OPTIONAL_DEAD_B");
 
-		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("N_102385__F_102406"), null)));
-		assertTrue(resolutions.contains(
-				new ResolutionDeleteConstraint(new Implies(new Literal("N_102385__F_102406"), new Not(new Literal("N_100353__F_100392"))), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("DF_EXCLUDED_OPTIONAL_EXCLUDING_B"), null)));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(
+				new Implies(new Literal("DF_EXCLUDED_OPTIONAL_EXCLUDING_B"), new Not(new Literal("DF_EXCLUDED_OPTIONAL_DEAD_B"))), fmManager)));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_102385__F_102406"), new Not(new Literal("N_100353__F_100392")))), fmManager, "")));
+				getConstraintForNode(new Implies(new Literal("DF_EXCLUDED_OPTIONAL_EXCLUDING_B"), new Not(new Literal("DF_EXCLUDED_OPTIONAL_DEAD_B")))),
+				fmManager, "")));
 	}
 
 	@Test
 	public void testAlternativeImplicationDeadAutomotiveB() {
 
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "N_100469__I_100473_i_F_100477", "testAlternativeImplicationDeadAutomotiveB");
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_ALT_IMPLY_DEAD_B", "testAlternativeImplicationDeadAutomotiveB");
 
-		getDeadFeatureResolutions("N_100469__I_100473_i_F_100477");
+		getDeadFeatureResolutions("DF_ALT_IMPLY_DEAD_B");
 
-		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("N_102383__F_102501"), null)));
+		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("DF_ALT_IMPLY_IMPLYING_B"), null)));
 		assertTrue(resolutions.contains(
-				new ResolutionDeleteConstraint(new Implies(new Literal("N_102383__F_102501"), new Literal("N_100469__I_100473_i_F_100474")), fmManager)));
+				new ResolutionDeleteConstraint(new Implies(new Literal("DF_ALT_IMPLY_IMPLYING_B"), new Literal("DF_ALT_IMPLY_IMPLIED_B")), fmManager)));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_102383__F_102501"), new Literal("N_100469__I_100473_i_F_100474"))), fmManager, "")));
-		assertTrue(resolutions.contains(new ResolutionConvertAlternativeToOr(fmManager, featureModel.getFeature("N_100469__I_100473_i_F_100471"), "")));
+				getConstraintForNode(new Implies(new Literal("DF_ALT_IMPLY_IMPLYING_B"), new Literal("DF_ALT_IMPLY_IMPLIED_B"))), fmManager, "")));
+		assertTrue(resolutions.contains(new ResolutionConvertAlternativeToOr(fmManager, featureModel.getFeature("DF_ALT_IMPLY_PARENT_B"), "")));
+	}
+
+	@Test
+	public void testAltImplyAltAutomotiveB() {// TODO
+
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_ALT_IMPLY_ALT_DEAD_B", "testAltImplyAltAutomotiveB");
+
+		getDeadFeatureResolutions("DF_ALT_IMPLY_ALT_DEAD_B");
+
+		assertTrue(resolutions.contains(
+				new ResolutionDeleteConstraint(new Implies(new Literal("DF_ALT_IMPLY_ALT_DEAD_B"), new Literal("DF_ALT_IMPLY_ALT_IMPLIED_B")), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionConvertAlternativeToOr(fmManager, featureModel.getFeature("DF_ALT_IMPLY_ALT_PARENT_B"), "")));
+
+		// Exclusion results from the alternative group and cannot be deleted
+		assertFalse(resolutions.contains(
+				new ResolutionDeleteConstraint(new Implies(new Literal("DF_ALT_IMPLY_ALT_IMPLIED_B"), new Not("DF_ALT_IMPLY_ALT_DEAD_B")), fmManager)));
+	}
+
+	@Test
+	public void testImplyMultiAltAutomotiveB() {
+
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_IMPLY_MULTI_ALT_DEAD_B", "testImplyMultiAltAutomotiveB");
+
+		getDeadFeatureResolutions("DF_IMPLY_MULTI_ALT_DEAD_B");
+
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("DF_IMPLY_MULTI_ALT_DEAD_B"),
+				new And(new Literal("DF_IMPLY_MULTI_ALT_IMPLIED_B"), new Literal("DF_IMPLY_MULTI_ALT_IMPLIED2_B"))), fmManager)));
+		assertTrue(
+				resolutions
+						.contains(
+								new ResolutionEditConstraint(
+										getConstraintForNode(new Implies(new Literal("DF_IMPLY_MULTI_ALT_DEAD_B"),
+												new And(new Literal("DF_IMPLY_MULTI_ALT_IMPLIED_B"), new Literal("DF_IMPLY_MULTI_ALT_IMPLIED2_B")))),
+										fmManager, "")));
+
 	}
 
 	@Test
 	public void testSimultaneousImplyExcludeAutomotiveB() {
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "N_102383__I_103792_i_F_103796", "testSimultaneousImplyExcludeAutomotiveB");
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_SIMULTANEOUS_IMPLY_EXCL_DEAD_B", "testSimultaneousImplyExcludeAutomotiveB");
 
-		getDeadFeatureResolutions("N_102383__I_103792_i_F_103796");
+		getDeadFeatureResolutions("DF_SIMULTANEOUS_IMPLY_EXCL_DEAD_B");
 
-		assertTrue(resolutions.contains(
-				new ResolutionDeleteConstraint(new Implies(new Literal("N_102383__I_103792_i_F_103796"), new Literal("N_100576__F_100577")), fmManager)));
-		assertTrue(resolutions
-				.contains(new ResolutionDeleteConstraint(new Implies(new Literal("N_102383__F_102789"), new Not("N_102383__I_103792_i_F_103796")), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(
+				new Implies(new Literal("DF_SIMULTANEOUS_IMPLY_EXCL_DEAD_B"), new Literal("DF_SIMULTANEOUS_IMPLY_EXCL_IMPLIED_B")), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(
+				new Implies(new Literal("DF_SIMULTANEOUS_IMPLY_EXCL_EXCLUDING_B"), new Not("DF_SIMULTANEOUS_IMPLY_EXCL_DEAD_B")), fmManager)));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_102383__I_103792_i_F_103796"), new Literal("N_100576__F_100577"))), fmManager, "")));
+				getConstraintForNode(new Implies(new Literal("DF_SIMULTANEOUS_IMPLY_EXCL_DEAD_B"), new Literal("DF_SIMULTANEOUS_IMPLY_EXCL_IMPLIED_B"))),
+				fmManager, "")));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_102383__F_102789"), new Not("N_102383__I_103792_i_F_103796"))), fmManager, "")));
+				getConstraintForNode(new Implies(new Literal("DF_SIMULTANEOUS_IMPLY_EXCL_EXCLUDING_B"), new Not("DF_SIMULTANEOUS_IMPLY_EXCL_DEAD_B"))),
+				fmManager, "")));
 	}
 
 	@Test
 	public void testExcludeParentAutomotiveB() {
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "N_102383__I_103792_i_F_103835", "testExcludeParentAutomotiveB");
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_EXCLUDE_PARENT_DEAD_B", "testExcludeParentAutomotiveB");
 
-		getDeadFeatureResolutions("N_102383__I_103792_i_F_103835");
+		getDeadFeatureResolutions("DF_EXCLUDE_PARENT_DEAD_B");
 
 		assertTrue(resolutions.contains(
-				new ResolutionDeleteConstraint(new Implies(new Literal("N_102383__I_103792_i_F_103835"), new Literal("N_100000__F_104854")), fmManager)));
-		assertTrue(
-				resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("N_100000__F_104854"), new Not("N_102383__F_102384")), fmManager)));
+				new ResolutionDeleteConstraint(new Implies(new Literal("DF_EXCLUDE_PARENT_DEAD_B"), new Literal("DF_EXCLUDE_PARENT_EXCLUDING_B")), fmManager)));
+		assertTrue(resolutions.contains(
+				new ResolutionDeleteConstraint(new Implies(new Literal("DF_EXCLUDE_PARENT_EXCLUDING_B"), new Not("DF_EXCLUDE_PARENT_PARENT_B")), fmManager)));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_102383__I_103792_i_F_103835"), new Literal("N_100000__F_104854"))), fmManager, "")));
+				getConstraintForNode(new Implies(new Literal("DF_EXCLUDE_PARENT_DEAD_B"), new Literal("DF_EXCLUDE_PARENT_EXCLUDING_B"))), fmManager, "")));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_100000__F_104854"), new Not("N_102383__F_102384"))), fmManager, "")));
+				getConstraintForNode(new Implies(new Literal("DF_EXCLUDE_PARENT_EXCLUDING_B"), new Not("DF_EXCLUDE_PARENT_PARENT_B"))), fmManager, "")));
 
 	}
 
 	@Test
 	public void testDeadFeatureImplicationChainAutomotiveB() {
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "N_100000__F_104355", "testDeadFeatureImplicationChainAutomotiveB");
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_DEAD_IMPLY_CHAIN_DEAD_B", "testDeadFeatureImplicationChainAutomotiveB");
 
-		getDeadFeatureResolutions("N_100000__F_104355");
+		getDeadFeatureResolutions("DF_DEAD_IMPLY_CHAIN_DEAD_B");
 
-		System.out.println(resolutions);
-
-		assertTrue(resolutions
-				.contains(new ResolutionDeleteConstraint(new Implies(new Literal("N_100000__F_104355"), new Literal("N_100353__F_100456")), fmManager)));
-		assertTrue(resolutions
-				.contains(new ResolutionDeleteConstraint(new Implies(new Literal("N_100002__F_100014_xor"), new Not("N_100002__F_100020")), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(
+				new Implies(new Literal("DF_DEAD_IMPLY_CHAIN_DEAD_B"), new Literal("DF_DEAD_IMPLY_CHAIN_IMPLIED1_B")), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(
+				new Implies(new Literal("DF_DEAD_IMPLY_CHAIN_EXCLUDING_B"), new Not("DF_DEAD_IMPLY_CHAIN_EXCLUDED_B")), fmManager)));
 
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_100000__F_104355"), new Literal("N_100353__F_100456"))), fmManager, "")));
+				getConstraintForNode(new Implies(new Literal("DF_DEAD_IMPLY_CHAIN_DEAD_B"), new Literal("DF_DEAD_IMPLY_CHAIN_IMPLIED1_B"))), fmManager, "")));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_100002__F_100014_xor"), new Not("N_100002__F_100020"))), fmManager, "")));
+				getConstraintForNode(new Implies(new Literal("DF_DEAD_IMPLY_CHAIN_EXCLUDING_B"), new Not("DF_DEAD_IMPLY_CHAIN_EXCLUDED_B"))), fmManager, "")));
 
-		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("N_100002__F_100014_xor"), "")));
+		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("DF_DEAD_IMPLY_CHAIN_EXCLUDING_B"), "")));
 	}
 
 	@Test
 	public void testExcludedByFalseOptionalAutomotiveB() {
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "N_102383__I_103300_i_F_103340", "testExcludedByFalseOptionalAutomotiveB");
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_EXCLUDED_BY_FALSE_OPT_DEAD_B", "testExcludedByFalseOptionalAutomotiveB");
 
-		getDeadFeatureResolutions("N_102383__I_103300_i_F_103340");
+		getDeadFeatureResolutions("DF_EXCLUDED_BY_FALSE_OPT_DEAD_B");
 
-		assertTrue(resolutions
-				.contains(new ResolutionDeleteConstraint(new Implies(new Literal("N_100002__F_100106"), new Literal("N_104642__F_104647")), fmManager)));
-		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_100002__F_100106"), new Literal("N_104642__F_104647"))), fmManager, "")));
-		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("N_100002__F_100106"), "")));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(
+				new Implies(new Literal("DF_EXCLUDED_BY_FALSE_OPT_FALSE-OPTIONAL_IMPLYING_B"), new Literal("DF_EXCLUDED_BY_FALSE_OPT_FALSE-OPTIONAL_B")),
+				fmManager)));
+		assertTrue(resolutions.contains(new ResolutionEditConstraint(getConstraintForNode(
+				new Implies(new Literal("DF_EXCLUDED_BY_FALSE_OPT_FALSE-OPTIONAL_IMPLYING_B"), new Literal("DF_EXCLUDED_BY_FALSE_OPT_FALSE-OPTIONAL_B"))),
+				fmManager, "")));
+		assertTrue(
+				resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("DF_EXCLUDED_BY_FALSE_OPT_FALSE-OPTIONAL_IMPLYING_B"), "")));
 
-		assertFalse(resolutions.contains(new ResolutionMakeMandatory(fmManager, "N_104642__F_104647", "N_104642__F_104643", "")));
+		assertFalse(resolutions
+				.contains(new ResolutionMakeMandatory(fmManager, "DF_EXCLUDED_BY_FALSE_OPT_FALSE-OPTIONAL_B", "DF_EXCLUDED_BY_FALSE_OPT_FO-PARENT_B", "")));
 	}
 
+	@Test
 	public void testDeactivatedFeatureAutomotive() {
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "N_104282__F_104283", "testDeactivatedFeatureAutomotive");
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_DEACTIVATED_DEAD", "testDeactivatedFeatureAutomotive");
 
-		getDeadFeatureResolutions("N_104282__F_104283");
+		getDeadFeatureResolutions("DF_DEACTIVATED_DEAD");
 
 		assertTrue(resolutions.size() == 1);
-		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(new Not("N_104282__F_104283"), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(new Not("DF_DEACTIVATED_DEAD"), fmManager)));
 	}
 
-	public void testConvertToDeactivatedFeatureAutomotive() {
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "N_104282__F_104283", "testConvertToDeactivatedFeatureAutomotive");
-		getDeadFeatureResolutions("N_104282__F_104283");
-		assertTrue(resolutions.contains(new ResolutionCreateConstraint(new Not("N_104282__F_104283"), fmManager)));
+	@Test
+	public void testDeactivateExcludeSelfAutomotive() {
 
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "N_100002__F_100021", "");
-		getDeadFeatureResolutions("N_100002__F_100021");
-		assertTrue(resolutions.contains(new ResolutionCreateConstraint(new Not("N_100002__F_100021"), fmManager)));
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_EXCLUDE_SELF_DEACTIVATED", "testDeactivateExcludeSelfAutomotive");
+		getDeadFeatureResolutions("DF_EXCLUDE_SELF_DEACTIVATED");
+		assertTrue(resolutions.contains(new ResolutionChangeConstraint(fmManager,
+				new Implies(new Literal("DF_EXCLUDE_SELF_DEACTIVATED"), new Not("DF_EXCLUDE_SELF_DEACTIVATED")), new Not("DF_EXCLUDE_SELF_DEACTIVATED"), "")));
+	}
 
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "N_100002__F_100022", "");
-		getDeadFeatureResolutions("N_100002__F_100022");
-		assertTrue(resolutions.contains(new ResolutionCreateConstraint(new Not("N_100002__F_100022"), fmManager)));
+	@Test
+	public void testDeactivateExcludeRootAutomotive() {
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_EXCLUDE_ROOT_DEACTIVATED", "testDeactivateExcludeRootAutomotive");
+		getDeadFeatureResolutions("DF_EXCLUDE_ROOT_DEACTIVATED");
+		assertTrue(resolutions.contains(new ResolutionChangeConstraint(fmManager,
+				new Implies(new Literal("DF_EXCLUDE_ROOT_DEACTIVATED"), new Not("N_100000__F_100001")), new Not("DF_EXCLUDE_ROOT_DEACTIVATED"), "")));
+	}
 
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "N_100002__F_100023", "");
-		getDeadFeatureResolutions("N_100002__F_100023");
-		assertTrue(resolutions.contains(new ResolutionCreateConstraint(new Not("N_100002__F_100023"), fmManager)));
+	@Test
+	public void testDeactivateExcludedByRootAutomotive() {
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_EXCLUDED_BY_ROOT_DEACTIVATED", "testDeactivateExcludedByRootAutomotive");
+		getDeadFeatureResolutions("DF_EXCLUDED_BY_ROOT_DEACTIVATED");
+		assertTrue(resolutions.contains(new ResolutionChangeConstraint(fmManager,
+				new Implies(new Literal("N_100000__F_100001"), new Not("DF_EXCLUDED_BY_ROOT_DEACTIVATED")), new Not("DF_EXCLUDED_BY_ROOT_DEACTIVATED"), "")));
+	}
 
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "N_100002__F_100015", "");
-		getDeadFeatureResolutions("N_100002__F_100015");
-		assertTrue(resolutions.contains(new ResolutionCreateConstraint(new Not("N_100002__F_100015"), fmManager)));
-
+	@Test
+	public void testDeactivateExcludedByDeactivatedAutomotive() {
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_IMPLY_DEACTIVATED_DEAD", "testDeactivateExcludedByDeactivatedAutomotive");
+		getDeadFeatureResolutions("DF_IMPLY_DEACTIVATED_DEAD");
+		assertTrue(resolutions.stream().anyMatch(x -> (x instanceof ResolutionCreateConstraint)
+			&& ((ResolutionCreateConstraint) x).toCreateNode.toString().equals("-DF_IMPLY_DEACTIVATED_DEAD")));
 	}
 }

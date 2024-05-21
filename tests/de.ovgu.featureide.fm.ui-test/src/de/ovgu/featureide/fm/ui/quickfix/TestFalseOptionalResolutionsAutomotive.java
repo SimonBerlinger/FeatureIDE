@@ -38,92 +38,103 @@ public class TestFalseOptionalResolutionsAutomotive extends AbstractResolutionTe
 
 	@Test
 	public void testImpliedByMandatoryAutomotiveA() {
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.FALSE_OPTIONAL, "N_100130__F_100160", "testImpliedByMandatoryAutomotiveA");
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.FALSE_OPTIONAL, "FO_IMPLY_OPTIONAL_FALSE-OPTIONAL", "testImpliedByMandatoryAutomotiveA");
 
-		getFalseOptionalResolutions("N_100130__F_100160");
+		getFalseOptionalResolutions("FO_IMPLY_OPTIONAL_FALSE-OPTIONAL");
 
-		assertTrue(resolutions
-				.contains(new ResolutionDeleteConstraint(new Implies(new Literal("N_100130__F_100133"), new Literal("N_100130__F_100160")), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(
+				new Implies(new Literal("FO_IMPLY_OPTIONAL_IMPLYING"), new Literal("FO_IMPLY_OPTIONAL_FALSE-OPTIONAL")), fmManager)));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_100130__F_100133"), new Literal("N_100130__F_100160"))), fmManager, "")));
-		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("N_100130__F_100133"), "")));
-		assertTrue(resolutions.contains(new ResolutionMakeMandatory(fmManager, "N_100130__F_100160", "N_100130__F_100132", "")));
+				getConstraintForNode(new Implies(new Literal("FO_IMPLY_OPTIONAL_IMPLYING"), new Literal("FO_IMPLY_OPTIONAL_FALSE-OPTIONAL"))), fmManager, "")));
+		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("FO_IMPLY_OPTIONAL_IMPLYING"), "")));
+		assertTrue(resolutions.contains(new ResolutionMakeMandatory(fmManager, "FO_IMPLY_OPTIONAL_FALSE-OPTIONAL", "N_100000__F_100001", "")));
 	}
 
 	@Test
 	public void testExcludeOtherOptionsAutomotiveA() {
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.FALSE_OPTIONAL, "N_100130__F_100183", "testExcludeOtherOptionsAutomotiveA");
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.FALSE_OPTIONAL, "FO_EXCLUDE_OTHER_OPTIONS_FALSE-OPTIONAL",
+				"testExcludeOtherOptionsAutomotiveA");
 
-		getFalseOptionalResolutions("N_100130__F_100183");
+		getFalseOptionalResolutions("FO_EXCLUDE_OTHER_OPTIONS_FALSE-OPTIONAL");
 
-		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("N_100130__F_100133"), "")));
-		assertTrue(
-				resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("N_100130__F_100133"), new Not("N_100130__F_100175")), fmManager)));
-		assertTrue(
-				resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("N_100130__F_100133"), new Not("N_100130__F_100179")), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("FO_EXCLUDE_OTHER_OPTIONS_EXCLUDING"), "")));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(
+				new Implies(new Literal("FO_EXCLUDE_OTHER_OPTIONS_EXCLUDING"), new Not("FO_EXCLUDE_OTHER_OPTIONS_EXCLUDED1")), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(
+				new Implies(new Literal("FO_EXCLUDE_OTHER_OPTIONS_EXCLUDING"), new Not("FO_EXCLUDE_OTHER_OPTIONS_EXCLUDED2")), fmManager)));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_100130__F_100133"), new Not("N_100130__F_100175"))), fmManager, "")));
+				getConstraintForNode(new Implies(new Literal("FO_EXCLUDE_OTHER_OPTIONS_EXCLUDING"), new Not("FO_EXCLUDE_OTHER_OPTIONS_EXCLUDED1"))), fmManager,
+				"")));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_100130__F_100133"), new Not("N_100130__F_100179"))), fmManager, "")));
+				getConstraintForNode(new Implies(new Literal("FO_EXCLUDE_OTHER_OPTIONS_EXCLUDING"), new Not("FO_EXCLUDE_OTHER_OPTIONS_EXCLUDED2"))), fmManager,
+				"")));
 	}
 
 	@Test
 	public void testImplicationChainAutomotiveA() {
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.FALSE_OPTIONAL, "N_100130__F_100217", "testImplicationChainAutomotiveA");
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.FALSE_OPTIONAL, "FO_IMPLICATION_CHAIN_FALSE-OPTIONAL", "testImplicationChainAutomotiveA");
 
-		getFalseOptionalResolutions("N_100130__F_100217");
+		getFalseOptionalResolutions("FO_IMPLICATION_CHAIN_FALSE-OPTIONAL");
 
-		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("N_100130__F_100133"), "")));
-		assertTrue(resolutions.contains(new ResolutionMakeMandatory(fmManager, "N_100130__F_100170", "N_100130__F_100132", "")));
-		assertTrue(resolutions
-				.contains(new ResolutionDeleteConstraint(new Implies(new Literal("N_100130__F_100133"), new Literal("N_100130__F_100170")), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("FO_IMPLICATION_CHAIN_IMPLYING-MANDATORY"), "")));
+		assertTrue(resolutions.contains(new ResolutionMakeMandatory(fmManager, "FO_IMPLICATION_CHAIN_IMPLIED", "N_100300__F_100301", "")));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(
+				new Implies(new Literal("FO_IMPLICATION_CHAIN_IMPLYING-MANDATORY"), new Literal("FO_IMPLICATION_CHAIN_IMPLIED")), fmManager)));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_100130__F_100133"), new Literal("N_100130__F_100170"))), fmManager, "")));
+				getConstraintForNode(new Implies(new Literal("FO_IMPLICATION_CHAIN_IMPLYING-MANDATORY"), new Literal("FO_IMPLICATION_CHAIN_IMPLIED"))),
+				fmManager, "")));
 	}
 
 	@Test
 	public void testImpliedByMandatoryAutomotiveB() {
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.FALSE_OPTIONAL, "N_102383__I_104038_i_F_104267", "testImpliedByMandatoryAutomotiveB");
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.FALSE_OPTIONAL, "FO_IMPLIED_OPTIONAL_FALSE-OPTIONAL_B",
+				"testImpliedByMandatoryAutomotiveB");
 
-		getFalseOptionalResolutions("N_102383__I_104038_i_F_104267");
+		getFalseOptionalResolutions("FO_IMPLIED_OPTIONAL_FALSE-OPTIONAL_B");
 
-		assertTrue(resolutions.contains(
-				new ResolutionDeleteConstraint(new Implies(new Literal("N_100002__F_100106"), new Literal("N_102383__I_104038_i_F_104267")), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(
+				new Implies(new Literal("FO_IMPLIED_OPTIONAL_IMPLYING_B"), new Literal("FO_IMPLIED_OPTIONAL_FALSE-OPTIONAL_B")), fmManager)));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_100002__F_100106"), new Literal("N_102383__I_104038_i_F_104267"))), fmManager, "")));
-		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("N_100002__F_100106"), "")));
-		assertTrue(resolutions.contains(new ResolutionMakeMandatory(fmManager, "N_102383__I_104038_i_F_104267", "N_102383__I_104038_i_F_104225", "")));
+				getConstraintForNode(new Implies(new Literal("FO_IMPLIED_OPTIONAL_IMPLYING_B"), new Literal("FO_IMPLIED_OPTIONAL_FALSE-OPTIONAL_B"))),
+				fmManager, "")));
+		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("FO_IMPLIED_OPTIONAL_IMPLYING_B"), "")));
+		assertTrue(resolutions.contains(new ResolutionMakeMandatory(fmManager, "FO_IMPLIED_OPTIONAL_FALSE-OPTIONAL_B", "N_100000__F_100001", "")));
 	}
 
 	@Test
 	public void testExcludeOtherOptionsAutomotiveB() {
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.FALSE_OPTIONAL, "N_104649__F_104666", "testExcludeOtherOptionsAutomotiveB");
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.FALSE_OPTIONAL, "FO_EXCLUDE_OTHER_OPTIONS_FALSE-OPTIONAL_B",
+				"testExcludeOtherOptionsAutomotiveB");
 
-		getFalseOptionalResolutions("N_104649__F_104666");
+		getFalseOptionalResolutions("FO_EXCLUDE_OTHER_OPTIONS_FALSE-OPTIONAL_B");
 
-		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("N_100130__F_100133"), "")));
-		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("N_100130__F_100133"), "")));
-		assertTrue(resolutions
-				.contains(new ResolutionDeleteConstraint(new Implies(new Literal("N_100000__F_100467"), new Not("N_104649__F_104667_2")), fmManager)));
-		assertTrue(
-				resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("N_100300__F_100323"), new Not("N_104649__F_104667")), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("FO_EXCLUDE_OTHER_OPTIONS_EXCLUDING1_B"), "")));
+		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("FO_EXCLUDE_OTHER_OPTIONS_EXCLUDING2_B"), "")));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(
+				new Implies(new Literal("FO_EXCLUDE_OTHER_OPTIONS_EXCLUDING1_B"), new Not("FO_EXCLUDE_OTHER_OPTIONS_EXCLUDED1_B")), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(
+				new Implies(new Literal("FO_EXCLUDE_OTHER_OPTIONS_EXCLUDING2_B"), new Not("FO_EXCLUDE_OTHER_OPTIONS_EXCLUDED2_B")), fmManager)));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_100000__F_100467"), new Not("N_104649__F_104667_2"))), fmManager, "")));
+				getConstraintForNode(new Implies(new Literal("FO_EXCLUDE_OTHER_OPTIONS_EXCLUDING1_B"), new Not("FO_EXCLUDE_OTHER_OPTIONS_EXCLUDED1_B"))),
+				fmManager, "")));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_100300__F_100323"), new Not("N_104649__F_104667"))), fmManager, "")));
+				getConstraintForNode(new Implies(new Literal("FO_EXCLUDE_OTHER_OPTIONS_EXCLUDING2_B"), new Not("FO_EXCLUDE_OTHER_OPTIONS_EXCLUDED2_B"))),
+				fmManager, "")));
 	}
 
 	@Test
 	public void testImplicationChainAutomotiveB() {
-		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.FALSE_OPTIONAL, "N_100300__F_100352", "testImplicationChainAutomotiveB");
+		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.FALSE_OPTIONAL, "FO_IMPLICATION_CHAIN_FALSE-OPTIONAL_B",
+				"testImplicationChainAutomotiveB");
 
-		getFalseOptionalResolutions("N_100300__F_100352");
+		getFalseOptionalResolutions("FO_IMPLICATION_CHAIN_FALSE-OPTIONAL_B");
 
-		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("N_104649__F_104839"), "")));
-		assertTrue(resolutions.contains(new ResolutionMakeMandatory(fmManager, "N_100130__F_100286", "N_100130__F_100131", "")));
-		assertTrue(resolutions
-				.contains(new ResolutionDeleteConstraint(new Implies(new Literal("N_104649__F_104839"), new Literal("N_100130__F_100286")), fmManager)));
+		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("FO_IMPLICATION_CHAIN_IMPLYING-MANDATORY_B"), "")));
+		assertTrue(resolutions.contains(new ResolutionMakeMandatory(fmManager, "FO_IMPLICATION_CHAIN_IMPLIED_B", "N_100000__F_100467", "")));
+		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(
+				new Implies(new Literal("FO_IMPLICATION_CHAIN_IMPLYING-MANDATORY_B"), new Literal("FO_IMPLICATION_CHAIN_IMPLIED_B")), fmManager)));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
-				getConstraintForNode(new Implies(new Literal("N_104649__F_104839"), new Literal("N_100130__F_100286"))), fmManager, "")));
+				getConstraintForNode(new Implies(new Literal("FO_IMPLICATION_CHAIN_IMPLYING-MANDATORY_B"), new Literal("FO_IMPLICATION_CHAIN_IMPLIED_B"))),
+				fmManager, "")));
 	}
 }

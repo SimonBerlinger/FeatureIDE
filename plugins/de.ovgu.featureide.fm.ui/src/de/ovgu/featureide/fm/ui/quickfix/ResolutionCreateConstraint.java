@@ -38,8 +38,8 @@ public class ResolutionCreateConstraint extends AbstractResolution {
 	Node toCreateNode = null;
 
 	/**
+	 * @param toCreateNode
 	 * @param manager
-	 * @param marker
 	 */
 	public ResolutionCreateConstraint(Node toCreateNode, FeatureModelManager manager) {
 		super(manager);
@@ -71,15 +71,19 @@ public class ResolutionCreateConstraint extends AbstractResolution {
 
 	@Override
 	public boolean equals(Object obj) {
+		System.out.println("A");
 		if (this == obj) {
 			return true;
 		}
+		System.out.println("A");
 		if (obj == null) {
 			return false;
 		}
+		System.out.println("A");
 		if (getClass() != obj.getClass()) {
 			return false;
 		}
+		System.out.println("A");
 		final ResolutionCreateConstraint other = (ResolutionCreateConstraint) obj;
 		return Objects.equals(toCreateNode, other.toCreateNode);
 	}

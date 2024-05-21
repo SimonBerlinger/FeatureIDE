@@ -71,7 +71,6 @@ public class TestFalseOptionalResolutions extends AbstractResolutionTest {
 		getFalseOptionalResolutions("Period");
 
 		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("Hello"), "")));
-		assertTrue(resolutions.contains(new ResolutionMakeMandatory(fmManager, "Beautiful", "Sentence", "")));
 		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("Hello"), new Literal("Beautiful")), fmManager)));
 		assertTrue(resolutions
 				.contains(new ResolutionEditConstraint(getConstraintForNode(new Implies(new Literal("Hello"), new Literal("Beautiful"))), fmManager, "")));
