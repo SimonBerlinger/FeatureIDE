@@ -31,7 +31,7 @@ import org.prop4j.Not;
 import org.prop4j.Or;
 
 /**
- * TODO description
+ * This class tests redundancy resolutions for the {@code Automotive01} feature model.
  *
  * @author Simon Berlinger
  */

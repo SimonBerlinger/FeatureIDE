@@ -30,7 +30,7 @@ import org.prop4j.Not;
 import de.ovgu.featureide.fm.core.analysis.FeatureProperties.FeatureStatus;
 
 /**
- * TODO description
+ * This class tests the generation of false-optional resolutions for the {@code HelloWorld} feature models.
  *
  * @author Simon Berlinger
  */
@@ -46,7 +46,7 @@ public class TestFalseOptionalResolutions extends AbstractResolutionTest {
 		assertTrue(resolutions
 				.contains(new ResolutionEditConstraint(getConstraintForNode(new Implies(new Literal("Hello"), new Literal("Adjective"))), fmManager, "")));
 		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("Hello"), "")));
-		assertTrue(resolutions.contains(new ResolutionMakeMandatory(fmManager, "Adjective", "Sentence", "")));
+		assertTrue(resolutions.contains(new ResolutionMakeMandatory(fmManager, featureModel.getFeature("Adjective"), featureModel.getFeature("Sentence"), "")));
 	}
 
 	@Test
@@ -74,6 +74,5 @@ public class TestFalseOptionalResolutions extends AbstractResolutionTest {
 		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(new Implies(new Literal("Hello"), new Literal("Beautiful")), fmManager)));
 		assertTrue(resolutions
 				.contains(new ResolutionEditConstraint(getConstraintForNode(new Implies(new Literal("Hello"), new Literal("Beautiful"))), fmManager, "")));
-		// TODO check if resolutions for dead feature causes should in this case be displayed, when false optional is also potential cause
 	}
 }

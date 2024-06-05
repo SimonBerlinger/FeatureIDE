@@ -31,20 +31,35 @@ import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 import de.ovgu.featureide.fm.ui.editors.featuremodel.actions.EditConstraintAction;
 
 /**
- * TODO description
+ * A defect resolution, that starts the edit constraint dialog for a cross-tree constraint.
  *
  * @author Simon Berlinger
  */
 public class ResolutionEditConstraint extends AbstractResolution {
 
+	/**
+	 * The constraint to edit.
+	 */
 	private IConstraint constraint;
 
+	/**
+	 *
+	 * @param constr The constraint to edit
+	 * @param fmManager The FeatureModelManager
+	 * @param prefix The prefix for the label to indicate the defect
+	 */
 	public ResolutionEditConstraint(IConstraint constr, FeatureModelManager fmManager, String prefix) {
 		super(fmManager);
 		constraint = constr;
 		this.prefix = prefix;
 	}
 
+	/**
+	 *
+	 * @param constrNode The node of the constraint to edit
+	 * @param fmManager The FeatureModelManager
+	 * @param prefix The prefix for the label to indicate the defect
+	 */
 	public ResolutionEditConstraint(Node constrNode, FeatureModelManager fmManager, String prefix) {
 		super(fmManager);
 		final List<IConstraint> constraints =
@@ -76,10 +91,6 @@ public class ResolutionEditConstraint extends AbstractResolution {
 		fmManager.overwrite();
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.lang.Object#toString()
-	 */
 	@Override
 	public String toString() {
 		return "ResolutionEditConstraint [constraint=" + constraint + "]";

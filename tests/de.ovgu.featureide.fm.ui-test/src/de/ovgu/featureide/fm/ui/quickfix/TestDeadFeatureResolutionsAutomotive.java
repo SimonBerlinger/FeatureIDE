@@ -32,7 +32,7 @@ import org.prop4j.Not;
 import de.ovgu.featureide.fm.core.analysis.FeatureProperties.FeatureStatus;
 
 /**
- * TODO description
+ * This class tests the generation of dead feature resolutions for the {@code Automotive01} feature model.
  *
  * @author Simon Berlinger
  */
@@ -172,7 +172,8 @@ public class TestDeadFeatureResolutionsAutomotive extends AbstractResolutionTest
 				getConstraintForNode(new Implies(new Literal("DF_EXCL_BY_FALSE_OPT_IMPLYING"), new Literal("DF_EXCL_BY_FALSE_OPT_FALSE-OPTIONAL"))), fmManager,
 				"")));
 		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("DF_EXCL_BY_FALSE_OPT_IMPLYING"), "")));
-		assertTrue(resolutions.contains(new ResolutionMakeMandatory(fmManager, "DF_EXCL_BY_FALSE_OPT_FALSE-OPTIONAL", "DF_EXCL_BY_FALSE_OPT_FO-PARENT", "")));
+		assertTrue(resolutions.contains(new ResolutionMakeMandatory(fmManager, featureModel.getFeature("DF_EXCL_BY_FALSE_OPT_FALSE-OPTIONAL"),
+				featureModel.getFeature("DF_EXCL_BY_FALSE_OPT_FO-PARENT"), "")));
 	}
 
 	@Test
@@ -206,8 +207,7 @@ public class TestDeadFeatureResolutionsAutomotive extends AbstractResolutionTest
 	}
 
 	@Test
-	public void testAltImplyAltAutomotiveB() {// TODO
-
+	public void testAltImplyAltAutomotiveB() {
 		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_ALT_IMPLY_ALT_DEAD_B", "testAltImplyAltAutomotiveB");
 
 		getDeadFeatureResolutions("DF_ALT_IMPLY_ALT_DEAD_B");
@@ -309,8 +309,8 @@ public class TestDeadFeatureResolutionsAutomotive extends AbstractResolutionTest
 		assertTrue(
 				resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("DF_EXCLUDED_BY_FALSE_OPT_FALSE-OPTIONAL_IMPLYING_B"), "")));
 
-		assertFalse(resolutions
-				.contains(new ResolutionMakeMandatory(fmManager, "DF_EXCLUDED_BY_FALSE_OPT_FALSE-OPTIONAL_B", "DF_EXCLUDED_BY_FALSE_OPT_FO-PARENT_B", "")));
+		assertFalse(resolutions.contains(new ResolutionMakeMandatory(fmManager, featureModel.getFeature("DF_EXCLUDED_BY_FALSE_OPT_FALSE-OPTIONAL_B"),
+				featureModel.getFeature("DF_EXCLUDED_BY_FALSE_OPT_FO-PARENT_B"), "")));
 	}
 
 	@Test
@@ -328,7 +328,7 @@ public class TestDeadFeatureResolutionsAutomotive extends AbstractResolutionTest
 
 		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_EXCLUDE_SELF_DEACTIVATED", "testDeactivateExcludeSelfAutomotive");
 		getDeadFeatureResolutions("DF_EXCLUDE_SELF_DEACTIVATED");
-		assertTrue(resolutions.contains(new ResolutionChangeConstraint(fmManager,
+		assertTrue(resolutions.contains(new ResolutionReplaceConstraint(fmManager,
 				new Implies(new Literal("DF_EXCLUDE_SELF_DEACTIVATED"), new Not("DF_EXCLUDE_SELF_DEACTIVATED")), new Not("DF_EXCLUDE_SELF_DEACTIVATED"), "")));
 	}
 
@@ -336,7 +336,7 @@ public class TestDeadFeatureResolutionsAutomotive extends AbstractResolutionTest
 	public void testDeactivateExcludeRootAutomotive() {
 		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_EXCLUDE_ROOT_DEACTIVATED", "testDeactivateExcludeRootAutomotive");
 		getDeadFeatureResolutions("DF_EXCLUDE_ROOT_DEACTIVATED");
-		assertTrue(resolutions.contains(new ResolutionChangeConstraint(fmManager,
+		assertTrue(resolutions.contains(new ResolutionReplaceConstraint(fmManager,
 				new Implies(new Literal("DF_EXCLUDE_ROOT_DEACTIVATED"), new Not("N_100000__F_100001")), new Not("DF_EXCLUDE_ROOT_DEACTIVATED"), "")));
 	}
 
@@ -344,7 +344,7 @@ public class TestDeadFeatureResolutionsAutomotive extends AbstractResolutionTest
 	public void testDeactivateExcludedByRootAutomotive() {
 		analyzeFeatureModel("automotive01_defects.xml", FeatureStatus.DEAD, "DF_EXCLUDED_BY_ROOT_DEACTIVATED", "testDeactivateExcludedByRootAutomotive");
 		getDeadFeatureResolutions("DF_EXCLUDED_BY_ROOT_DEACTIVATED");
-		assertTrue(resolutions.contains(new ResolutionChangeConstraint(fmManager,
+		assertTrue(resolutions.contains(new ResolutionReplaceConstraint(fmManager,
 				new Implies(new Literal("N_100000__F_100001"), new Not("DF_EXCLUDED_BY_ROOT_DEACTIVATED")), new Not("DF_EXCLUDED_BY_ROOT_DEACTIVATED"), "")));
 	}
 

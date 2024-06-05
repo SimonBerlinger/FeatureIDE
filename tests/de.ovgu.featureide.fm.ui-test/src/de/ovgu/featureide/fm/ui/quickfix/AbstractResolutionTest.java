@@ -35,7 +35,7 @@ import de.ovgu.featureide.fm.core.explanations.Reason;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 
 /**
- * TODO description
+ * This class provides the basic functionality for unit tests to test the generation of correct defect resolutions.
  *
  * @author Simon Berlinger
  */
@@ -49,6 +49,14 @@ public class AbstractResolutionTest {
 	Set<IMarkerResolution> resolutions;
 	DefectQuickFixHandler dqh;
 
+	/**
+	 * Executes the analysis on the specified feature model defect.
+	 *
+	 * @param filename The name of the xml file of the feature model in the {@code testFeatureModels} folder
+	 * @param defectType The type of the defect to be analyzed
+	 * @param defectFeatureName The name of the defect feature
+	 * @param title The title which is printed to the console to identify the current teset
+	 */
 	protected void analyzeFeatureModel(String filename, FeatureStatus defectType, String defectFeatureName, String title) {
 		System.out.println("BEGIN: " + title);
 		loadFeatureModelIfNotPresent(filename);
@@ -75,6 +83,13 @@ public class AbstractResolutionTest {
 		dqh.featureModelFormula = fmManager.getPersistentFormula();
 	}
 
+	/**
+	 * Executes the analysis on the specified feature model redundancy.
+	 *
+	 * @param filename The name of the xml file of the feature model in the {@code testFeatureModels} folder
+	 * @param constraintNode The constraint which is redundant
+	 * @param title The title which is printed to the console to identify the current teset
+	 */
 	protected void analyzeFeatureModelRedundancy(String filename, Node constraintNode, String title) {
 		System.out.println("BEGIN: " + title);
 		loadFeatureModelIfNotPresent(filename);
@@ -90,6 +105,11 @@ public class AbstractResolutionTest {
 		dqh.featureModelFormula = fmManager.getPersistentFormula();
 	}
 
+	/**
+	 * Loads a feature model, if it has not been loaded yet
+	 *
+	 * @param filename The name of the xml file in the {@code testFeatureModels} folder
+	 */
 	protected void loadFeatureModelIfNotPresent(String filename) {
 		if ((fmManager == null) || !fmManager.getPath().endsWith(filename)) {
 			fmManager = Commons.loadTestFeatureModelFromFile(filename);
@@ -100,6 +120,11 @@ public class AbstractResolutionTest {
 		return (IConstraint) featureModel.getConstraints().stream().filter(x -> x.getNode().equals(node)).toArray()[0];
 	}
 
+	/**
+	 * Retrieves the resolutions for a dead feature and measures the elapsed time.
+	 *
+	 * @param featureName The name of the dead feature
+	 */
 	protected void getDeadFeatureResolutions(String featureName) {
 		final long t0 = System.nanoTime();
 		resolutionProvider =
@@ -110,6 +135,11 @@ public class AbstractResolutionTest {
 
 	}
 
+	/**
+	 * Retrieves the resolutions for a false-optional feature and measures the elapsed time.
+	 *
+	 * @param featureName The name of the false-optional feature
+	 */
 	protected void getFalseOptionalResolutions(String featureName) {
 		final long t0 = System.nanoTime();
 		resolutionProvider =
@@ -120,6 +150,11 @@ public class AbstractResolutionTest {
 
 	}
 
+	/**
+	 * Retrieves the resolutions for a redundant constraint and measures the elapsed time.
+	 *
+	 * @param constraintNode The redundant constraint
+	 */
 	protected void getRedundancyResolutions(Node constraintNode) {
 		final long t0 = System.nanoTime();
 		resolutionProvider =

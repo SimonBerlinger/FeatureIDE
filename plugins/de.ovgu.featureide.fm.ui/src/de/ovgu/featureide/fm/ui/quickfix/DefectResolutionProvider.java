@@ -206,8 +206,8 @@ public class DefectResolutionProvider {
 			if (testForImplication(List.of(possibleReason.getName()), possiblyImplied.getName(), reason.toNode()).size() > 0) {
 				offeredResolutions.add(new ResolutionDeleteConstraint(reason.toNode(), fmManager, featurePrefix));
 
-				offeredResolutions.add(new ResolutionMakeMandatory(fmManager, possiblyImplied.getName(),
-						Features.getCommonAncestor(List.of(possiblyImplied, possibleReason)).getName(), featurePrefix));
+				offeredResolutions.add(new ResolutionMakeMandatory(fmManager, possiblyImplied,
+						Features.getCommonAncestor(List.of(possiblyImplied, possibleReason)), featurePrefix));
 
 				IConstraint editConstraint = null;
 
@@ -697,7 +697,9 @@ public class DefectResolutionProvider {
 				final Node newConstraint = new And();
 				newConstraint.setChildren(newChildren);
 
-				offeredResolutions.add(new ResolutionChangeConstraint(fmManager, constraint, newConstraint, ""));
+				if (newConstraint.getContainedFeatures().size() > 0) {
+					offeredResolutions.add(new ResolutionReplaceConstraint(fmManager, constraint, newConstraint, ""));
+				}
 			}
 
 		} else if (!isConstraintRelation) {
@@ -715,7 +717,9 @@ public class DefectResolutionProvider {
 			final Node newConstraint = new And();
 			newConstraint.setChildren(newChildren);
 
-			offeredResolutions.add(new ResolutionChangeConstraint(fmManager, constraint, newConstraint, ""));
+			if (newConstraint.getContainedFeatures().size() > 0) {
+				offeredResolutions.add(new ResolutionReplaceConstraint(fmManager, constraint, newConstraint, ""));
+			}
 
 		}
 
@@ -764,8 +768,6 @@ public class DefectResolutionProvider {
 
 								break;
 							}
-					} else {
-
 					}
 				}
 

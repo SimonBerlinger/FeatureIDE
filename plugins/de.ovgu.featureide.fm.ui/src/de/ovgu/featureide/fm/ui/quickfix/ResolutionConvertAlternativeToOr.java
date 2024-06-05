@@ -28,20 +28,25 @@ import de.ovgu.featureide.fm.core.base.IFeature;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 
 /**
- * TODO description
+ * A defect resolution, that converts an alternative-group to an or-group.
  *
  * @author Simon Berlinger
  */
 public class ResolutionConvertAlternativeToOr extends AbstractResolution {
 
+	/**
+	 * The parent of the affected alternative-group
+	 */
 	private final IFeature alternativeParent;
 
 	/**
-	 * @param marker
-	 * @param manager
+	 *
+	 * @param fmManager THe FeatureModelManager
+	 * @param alternativeParent The parent of the alternative-group
+	 * @param prefix The prefix for the label indicating the defect
 	 */
-	public ResolutionConvertAlternativeToOr(FeatureModelManager manager, IFeature alternativeParent, String prefix) {
-		super(manager);
+	public ResolutionConvertAlternativeToOr(FeatureModelManager fmManager, IFeature alternativeParent, String prefix) {
+		super(fmManager);
 		this.alternativeParent = alternativeParent;
 		this.prefix = prefix;
 	}

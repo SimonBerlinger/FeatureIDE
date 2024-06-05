@@ -31,11 +31,10 @@ import org.prop4j.Not;
 import de.ovgu.featureide.fm.core.analysis.FeatureProperties.FeatureStatus;
 
 /**
- * TODO description
+ * This class tests the generation of dead feature resolutions for the {@code HelloWorld} feature models.
  *
  * @author Simon Berlinger
  */
-
 public class TestDeadFeatureResolutions extends AbstractResolutionTest {
 
 	@Test
@@ -168,7 +167,7 @@ public class TestDeadFeatureResolutions extends AbstractResolutionTest {
 
 		analyzeFeatureModel("dead_deactivated_features.xml", FeatureStatus.DEAD, "Hello", "testDeactivateExcludeSelf");
 		getDeadFeatureResolutions("Hello");
-		assertTrue(resolutions.contains(new ResolutionChangeConstraint(fmManager, new Implies(new Literal("Hello"), new Not("Hello")), new Not("Hello"), "")));
+		assertTrue(resolutions.contains(new ResolutionReplaceConstraint(fmManager, new Implies(new Literal("Hello"), new Not("Hello")), new Not("Hello"), "")));
 	}
 
 	@Test
@@ -176,7 +175,7 @@ public class TestDeadFeatureResolutions extends AbstractResolutionTest {
 		analyzeFeatureModel("dead_deactivated_features.xml", FeatureStatus.DEAD, "Beautiful", "testDeactivateExcludeRoot");
 		getDeadFeatureResolutions("Beautiful");
 		assertTrue(resolutions
-				.contains(new ResolutionChangeConstraint(fmManager, new Implies(new Literal("Beautiful"), new Not("Sentence")), new Not("Beautiful"), "")));
+				.contains(new ResolutionReplaceConstraint(fmManager, new Implies(new Literal("Beautiful"), new Not("Sentence")), new Not("Beautiful"), "")));
 	}
 
 	@Test
@@ -184,7 +183,7 @@ public class TestDeadFeatureResolutions extends AbstractResolutionTest {
 		analyzeFeatureModel("dead_deactivated_features.xml", FeatureStatus.DEAD, "Wonderful", "testDeactivateExcludedByRoot");
 		getDeadFeatureResolutions("Wonderful");
 		assertTrue(resolutions
-				.contains(new ResolutionChangeConstraint(fmManager, new Implies(new Literal("Sentence"), new Not("Wonderful")), new Not("Wonderful"), "")));
+				.contains(new ResolutionReplaceConstraint(fmManager, new Implies(new Literal("Sentence"), new Not("Wonderful")), new Not("Wonderful"), "")));
 	}
 
 	@Test

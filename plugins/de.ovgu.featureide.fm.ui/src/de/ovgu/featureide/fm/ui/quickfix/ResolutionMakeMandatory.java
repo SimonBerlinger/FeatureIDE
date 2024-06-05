@@ -31,30 +31,39 @@ import de.ovgu.featureide.fm.core.base.impl.Feature;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 
 /**
- * TODO description
+ * A defect resolution, that makes a non-mandatory feature mandatory.
  *
  * @author Simon Berlinger
  */
 public class ResolutionMakeMandatory extends AbstractResolution {
 
-	private final String featureName;
-	private final String parentName;
+	/**
+	 * The name of the feature to make mandatory
+	 */
+	private IFeature feature;
+	/**
+	 * The name of the parent of the affected feature
+	 */
+	private final IFeature parent;
 
 	/**
-	 * @param marker
-	 * @param manager
+	 *
+	 * @param fmManager The FeatureModelManager
+	 * @param feature The feature to make mandatory
+	 * @param parent The parent of the affected feature
+	 * @param prefix The prefix for the label to indicate the defect
 	 */
-	public ResolutionMakeMandatory(FeatureModelManager manager, String featureName, String parentName, String prefix) {
-		super(manager);
-		this.featureName = featureName;
-		this.parentName = parentName;
+	public ResolutionMakeMandatory(FeatureModelManager fmManager, IFeature feature, IFeature parent, String prefix) {
+		super(fmManager);
+		this.feature = feature;
+		this.parent = parent;
 		this.prefix = prefix;
 	}
 
 	@Override
 	public String getLabel() {
 
-		return prefix + "Make the feature ''" + featureName + "'' mandatory under ''" + parentName + "''";
+		return prefix + "Make the feature ''" + feature + "'' mandatory under ''" + parent + "''";
 	}
 
 	@Override
@@ -63,19 +72,18 @@ public class ResolutionMakeMandatory extends AbstractResolution {
 		fmManager.overwrite();
 		fmManager.editObject(featureModel -> {
 
-			IFeature currentFeature = featureModel.getFeature(featureName);
-			IFeature currentParent = currentFeature.getStructure().getParent().getFeature();
+			IFeature parentStructure = feature.getStructure().getParent().getFeature();
 
-			while (!currentFeature.getName().equals(parentName)) {
-				currentParent = currentFeature.getStructure().getParent().getFeature();
-				if (currentParent.getStructure().isAlternative()) {
+			while (!feature.getName().equals(parent.getName())) {
+				parentStructure = feature.getStructure().getParent().getFeature();
+				if (parentStructure.getStructure().isAlternative()) {
 
 					final List<IFeatureStructure> siblings =
-						currentParent.getStructure().getChildren().stream().filter(x -> !x.getFeature().getName().equals(featureName)).toList();
+						parentStructure.getStructure().getChildren().stream().filter(x -> !x.getFeature().getName().equals(feature)).toList();
 
 					if (siblings.size() > 1) {
 
-						currentParent.getStructure().changeToAnd();
+						parentStructure.getStructure().changeToAnd();
 
 						int idx = 0;
 
@@ -87,33 +95,33 @@ public class ResolutionMakeMandatory extends AbstractResolution {
 
 						for (final IFeatureStructure sibling : siblings) {
 							newFeature.getStructure().addChild(sibling);
-							currentParent.getStructure().removeChild(sibling);
+							parentStructure.getStructure().removeChild(sibling);
 						}
 
 						newFeature.getStructure().setMandatory(false);
 						newFeature.getStructure().setAlternative();
 
-						currentParent.getStructure().addChild(newFeature.getStructure());
+						parentStructure.getStructure().addChild(newFeature.getStructure());
 
 					} else {
 						siblings.get(0).setMandatory(false);
 					}
 
-					currentFeature.getStructure().setMandatory(true);
+					feature.getStructure().setMandatory(true);
 
-				} else if (currentParent.getStructure().isOr()) {
-					currentParent.getStructure().setAnd();
-					for (final IFeatureStructure f : currentParent.getStructure().getChildren()) {
-						if (f.getFeature().getName().equals(featureName)) {
+				} else if (parentStructure.getStructure().isOr()) {
+					parentStructure.getStructure().setAnd();
+					for (final IFeatureStructure f : parentStructure.getStructure().getChildren()) {
+						if (f.getFeature().getName().equals(feature)) {
 							f.setMandatory(true);
 						} else {
 							f.setMandatory(false);
 						}
 					}
 				} else {
-					currentFeature.getStructure().setMandatory(true);
+					feature.getStructure().setMandatory(true);
 				}
-				currentFeature = currentFeature.getStructure().getParent().getFeature();
+				feature = feature.getStructure().getParent().getFeature();
 			}
 
 		});
@@ -123,7 +131,7 @@ public class ResolutionMakeMandatory extends AbstractResolution {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(featureName, parentName);
+		return Objects.hash(feature, parent);
 	}
 
 	@Override
@@ -138,12 +146,12 @@ public class ResolutionMakeMandatory extends AbstractResolution {
 			return false;
 		}
 		final ResolutionMakeMandatory other = (ResolutionMakeMandatory) obj;
-		return Objects.equals(featureName, other.featureName) && Objects.equals(parentName, other.parentName);
+		return Objects.equals(feature, other.feature) && Objects.equals(parent, other.parent);
 	}
 
 	@Override
 	public String toString() {
-		return "ResolutionMakeMandatory [featureName=" + featureName + ", parentName=" + parentName + "]";
+		return "ResolutionMakeMandatory [featureName=" + feature + ", parentName=" + parent + "]";
 	}
 
 }

@@ -30,7 +30,7 @@ import org.prop4j.Not;
 import de.ovgu.featureide.fm.core.analysis.FeatureProperties.FeatureStatus;
 
 /**
- * TODO description
+ * This class tests the generation of false-optional resolutions for the {@code Automotive01} feature model.
  *
  * @author Simon Berlinger
  */
@@ -47,7 +47,8 @@ public class TestFalseOptionalResolutionsAutomotive extends AbstractResolutionTe
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
 				getConstraintForNode(new Implies(new Literal("FO_IMPLY_OPTIONAL_IMPLYING"), new Literal("FO_IMPLY_OPTIONAL_FALSE-OPTIONAL"))), fmManager, "")));
 		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("FO_IMPLY_OPTIONAL_IMPLYING"), "")));
-		assertTrue(resolutions.contains(new ResolutionMakeMandatory(fmManager, "FO_IMPLY_OPTIONAL_FALSE-OPTIONAL", "N_100000__F_100001", "")));
+		assertTrue(resolutions.contains(new ResolutionMakeMandatory(fmManager, featureModel.getFeature("FO_IMPLY_OPTIONAL_FALSE-OPTIONAL"),
+				featureModel.getFeature("N_100000__F_100001"), "")));
 	}
 
 	@Test
@@ -77,7 +78,8 @@ public class TestFalseOptionalResolutionsAutomotive extends AbstractResolutionTe
 		getFalseOptionalResolutions("FO_IMPLICATION_CHAIN_FALSE-OPTIONAL");
 
 		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("FO_IMPLICATION_CHAIN_IMPLYING-MANDATORY"), "")));
-		assertTrue(resolutions.contains(new ResolutionMakeMandatory(fmManager, "FO_IMPLICATION_CHAIN_IMPLIED", "N_100300__F_100301", "")));
+		assertTrue(resolutions.contains(new ResolutionMakeMandatory(fmManager, featureModel.getFeature("FO_IMPLICATION_CHAIN_IMPLIED"),
+				featureModel.getFeature("N_100300__F_100301"), "")));
 		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(
 				new Implies(new Literal("FO_IMPLICATION_CHAIN_IMPLYING-MANDATORY"), new Literal("FO_IMPLICATION_CHAIN_IMPLIED")), fmManager)));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(
@@ -98,7 +100,8 @@ public class TestFalseOptionalResolutionsAutomotive extends AbstractResolutionTe
 				getConstraintForNode(new Implies(new Literal("FO_IMPLIED_OPTIONAL_IMPLYING_B"), new Literal("FO_IMPLIED_OPTIONAL_FALSE-OPTIONAL_B"))),
 				fmManager, "")));
 		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("FO_IMPLIED_OPTIONAL_IMPLYING_B"), "")));
-		assertTrue(resolutions.contains(new ResolutionMakeMandatory(fmManager, "FO_IMPLIED_OPTIONAL_FALSE-OPTIONAL_B", "N_100000__F_100001", "")));
+		assertTrue(resolutions.contains(new ResolutionMakeMandatory(fmManager, featureModel.getFeature("FO_IMPLIED_OPTIONAL_FALSE-OPTIONAL_B"),
+				featureModel.getFeature("N_100000__F_100001"), "")));
 	}
 
 	@Test
@@ -130,7 +133,8 @@ public class TestFalseOptionalResolutionsAutomotive extends AbstractResolutionTe
 		getFalseOptionalResolutions("FO_IMPLICATION_CHAIN_FALSE-OPTIONAL_B");
 
 		assertTrue(resolutions.contains(new ResolutionMakeOptional(fmManager, featureModel.getFeature("FO_IMPLICATION_CHAIN_IMPLYING-MANDATORY_B"), "")));
-		assertTrue(resolutions.contains(new ResolutionMakeMandatory(fmManager, "FO_IMPLICATION_CHAIN_IMPLIED_B", "N_100000__F_100467", "")));
+		assertTrue(resolutions.contains(new ResolutionMakeMandatory(fmManager, featureModel.getFeature("FO_IMPLICATION_CHAIN_IMPLIED_B"),
+				featureModel.getFeature("N_100000__F_100467"), "")));
 		assertTrue(resolutions.contains(new ResolutionDeleteConstraint(
 				new Implies(new Literal("FO_IMPLICATION_CHAIN_IMPLYING-MANDATORY_B"), new Literal("FO_IMPLICATION_CHAIN_IMPLIED_B")), fmManager)));
 		assertTrue(resolutions.contains(new ResolutionEditConstraint(

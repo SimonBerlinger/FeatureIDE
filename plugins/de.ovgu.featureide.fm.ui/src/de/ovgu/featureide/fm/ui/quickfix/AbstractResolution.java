@@ -28,7 +28,7 @@ import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 import de.ovgu.featureide.fm.ui.editors.FeatureDiagramEditor;
 
 /**
- * TODO description
+ * Abstract class containing the basic elements for a defect resolution
  *
  * @author Simon Berlinger
  */

@@ -28,13 +28,28 @@ import de.ovgu.featureide.fm.core.base.IFeature;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 
 /**
- * TODO description
+ * A defect resolution which makes a mandatory feature optional.
  *
  * @author Simon Berlinger
  */
 public class ResolutionMakeOptional extends AbstractResolution {
 
+	/**
+	 * The name of the feature to make optional
+	 */
 	private final String featureName;
+
+	/**
+	 *
+	 * @param fmManager The FeatureModelManager
+	 * @param feature The feature to make optional
+	 * @param prefix The prefix for the label to indicate the defect
+	 */
+	public ResolutionMakeOptional(FeatureModelManager fmManager, IFeature feature, String prefix) {
+		super(fmManager);
+		featureName = feature.getName();
+		this.prefix = prefix;
+	}
 
 	@Override
 	public String getLabel() {
@@ -57,12 +72,6 @@ public class ResolutionMakeOptional extends AbstractResolution {
 
 		fmManager.save();
 		fmManager.overwrite();
-	}
-
-	public ResolutionMakeOptional(FeatureModelManager fmManager, IFeature feature, String prefix) {
-		super(fmManager);
-		featureName = feature.getName();
-		this.prefix = prefix;
 	}
 
 	@Override

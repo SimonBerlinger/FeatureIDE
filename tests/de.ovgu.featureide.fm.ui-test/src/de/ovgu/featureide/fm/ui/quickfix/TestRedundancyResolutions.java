@@ -30,7 +30,7 @@ import org.prop4j.Not;
 import org.prop4j.Or;
 
 /**
- * TODO description
+ * This class tests the generation of redundancy resolutions for the {@code HelloWorld} feature models.
  *
  * @author Simon Berlinger
  */

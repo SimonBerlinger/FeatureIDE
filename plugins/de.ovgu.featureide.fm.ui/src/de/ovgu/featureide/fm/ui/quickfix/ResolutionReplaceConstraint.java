@@ -30,16 +30,29 @@ import de.ovgu.featureide.fm.core.base.impl.Constraint;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 
 /**
- * TODO description
+ * A defect resolution, that replaces a constraint with another constraint.
  *
  * @author Simon Berlinger
  */
-public class ResolutionChangeConstraint extends AbstractResolution {
+public class ResolutionReplaceConstraint extends AbstractResolution {
 
+	/**
+	 * The node of the original constraint
+	 */
 	private final Node originalNode;
+	/**
+	 * The node of the new constraint, that should replace the old one
+	 */
 	private final Node newNode;
 
-	public ResolutionChangeConstraint(FeatureModelManager fmManager, Node originalNode, Node newNode, String prefix) {
+	/**
+	 *
+	 * @param fmManager The FeatureModelManager
+	 * @param originalNode The node of the original constraint
+	 * @param newNode The node of the new constraint, that replaces the old one
+	 * @param prefix The prefix for the label indicating the defect
+	 */
+	public ResolutionReplaceConstraint(FeatureModelManager fmManager, Node originalNode, Node newNode, String prefix) {
 		super(fmManager);
 		this.originalNode = originalNode;
 		this.newNode = newNode;
@@ -86,7 +99,7 @@ public class ResolutionChangeConstraint extends AbstractResolution {
 		if (getClass() != obj.getClass()) {
 			return false;
 		}
-		final ResolutionChangeConstraint other = (ResolutionChangeConstraint) obj;
+		final ResolutionReplaceConstraint other = (ResolutionReplaceConstraint) obj;
 		return Objects.equals(newNode, other.newNode) && Objects.equals(originalNode, other.originalNode);
 	}
 

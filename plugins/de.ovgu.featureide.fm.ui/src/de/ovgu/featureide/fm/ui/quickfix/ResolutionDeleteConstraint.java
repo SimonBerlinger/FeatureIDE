@@ -29,19 +29,33 @@ import de.ovgu.featureide.fm.core.base.IConstraint;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 
 /**
- * TODO description
+ * A defect resolution, that deletes a constraint.
  *
  * @author Simon Berlinger
  */
 public class ResolutionDeleteConstraint extends AbstractResolution {
 
+	/**
+	 * The node of the constraint which is to be deleted
+	 */
 	Node toDeleteNode;
 
+	/**
+	 *
+	 * @param node The node of the constraint which is to be deleted
+	 * @param fmManager The FeatureModelManager
+	 */
 	public ResolutionDeleteConstraint(Node node, FeatureModelManager fmManager) {
 		super(fmManager);
 		toDeleteNode = node;
 	}
 
+	/**
+	 *
+	 * @param node The node of the constraint which is to be deleted
+	 * @param fmManager The FeatureModelManager
+	 * @param prefix The prefix for the label to indicate the defect
+	 */
 	public ResolutionDeleteConstraint(Node node, FeatureModelManager fmManager, String prefix) {
 		super(fmManager);
 		toDeleteNode = node;

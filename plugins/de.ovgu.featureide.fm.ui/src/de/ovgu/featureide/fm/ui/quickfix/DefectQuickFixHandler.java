@@ -169,6 +169,7 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 	 */
 	IMarkerResolution[] getRedundancyResolutions(final DefectResolutionProvider resolutionProvider, final Set<IMarkerResolution> offeredResolutions,
 			final IConstraint affectedConstraint) {
+		System.out.println("RC: " + analyzer.getRedundantConstraintExplanation(affectedConstraint));
 
 		final Set<Reason<?>> reasons = analyzer.getRedundantConstraintExplanation(affectedConstraint).getReasons();
 
@@ -192,21 +193,13 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 				return offeredResolutions.toArray(new IMarkerResolution[offeredResolutions.size()]);
 			}
 
-			// if all clauses from the constraint marked as redundant (as CNF) are contained in the reason-constraint (as CNF)
-			if (resolutionProvider.checkClausesContained(affectedConstraint.getNode(), reason.toNode(), offeredResolutions, false,
-					resolutionProvider.isReasonConstraint(reason))) {
+			resolutionProvider.checkClausesContained(reason.toNode(), affectedConstraint.getNode(), offeredResolutions,
+					resolutionProvider.isReasonConstraint(reason), false);
 
-				return offeredResolutions.toArray(new IMarkerResolution[offeredResolutions.size()]);
+			resolutionProvider.checkClausesContained(affectedConstraint.getNode(), reason.toNode(), offeredResolutions, false,
+					resolutionProvider.isReasonConstraint(reason));
 
-			} else if (resolutionProvider.checkClausesContained(reason.toNode(), affectedConstraint.getNode(), offeredResolutions,
-					resolutionProvider.isReasonConstraint(reason), false)) {
-
-						return offeredResolutions.toArray(new IMarkerResolution[offeredResolutions.size()]);
-
-					} else {
-						// neither the affected constraint nor the reason constraint is fully contained in the other
-						// TODO determine redundant clauses
-					}
+			return offeredResolutions.toArray(new IMarkerResolution[offeredResolutions.size()]);
 
 		} else {
 
@@ -305,7 +298,7 @@ public class DefectQuickFixHandler implements IMarkerResolutionGenerator {
 				if (resolutionProvider.isExcluding(affectedFeature.getName(),
 						featureModelFormula.getFeatureModel().getStructure().getRoot().getFeature().getName(), r.toNode())
 					|| resolutionProvider.isExcluding(affectedFeature.getName(), affectedFeature.getName(), r.toNode())) {
-					offeredResolutions.add(new ResolutionChangeConstraint(fmManager, r.toNode(), notFeature, ""));
+					offeredResolutions.add(new ResolutionReplaceConstraint(fmManager, r.toNode(), notFeature, ""));
 				}
 
 				// check if feature is excluded by deactivated feature

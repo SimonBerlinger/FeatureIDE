@@ -29,20 +29,24 @@ import de.ovgu.featureide.fm.core.base.impl.Constraint;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 
 /**
- * TODO description
+ * A defect resolution, that creates a new cross-tree constraint.
  *
  * @author Simon Berlinger
  */
 public class ResolutionCreateConstraint extends AbstractResolution {
 
+	/**
+	 * The node of the constraint which is to be created
+	 */
 	Node toCreateNode = null;
 
 	/**
-	 * @param toCreateNode
-	 * @param manager
+	 *
+	 * @param toCreateNode The node of the constraint which is to be created
+	 * @param fmManager The FeatureModelManager
 	 */
-	public ResolutionCreateConstraint(Node toCreateNode, FeatureModelManager manager) {
-		super(manager);
+	public ResolutionCreateConstraint(Node toCreateNode, FeatureModelManager fmManager) {
+		super(fmManager);
 		this.toCreateNode = toCreateNode;
 	}
 
